@@ -46,12 +46,17 @@ export class TerminalLauncher {
 	 */
 	private async launchWindowsTerminal(command: string, workingDir: string): Promise<void> {
 		try {
-			// Windows Terminal command format
-			// wt.exe -d "C:\path" cmd /k "command"
+			// Windows Terminal command format with PowerShell
+			// wt.exe -d "C:\path" powershell -NoExit -Command "command"
 			const args = [
 				"-d", workingDir,
-				"cmd", "/k", command
+				"powershell", "-NoExit", "-Command", command
 			];
+
+			console.log("[AI Terminal] Launching Windows Terminal:");
+			console.log("  Working dir:", workingDir);
+			console.log("  Command:", command);
+			console.log("  Full args:", ["wt.exe", ...args]);
 
 			spawn("wt.exe", args, {
 				detached: true,
@@ -77,8 +82,15 @@ export class TerminalLauncher {
 			// Build WSL command
 			const wslCommand = `cd "${wslPath}" && ${command}`;
 			
+			console.log("[AI Terminal] Launching WSL:");
+			console.log("  Windows path:", workingDir);
+			console.log("  WSL path:", wslPath);
+			console.log("  Command:", command);
+			console.log("  Full WSL command:", wslCommand);
+			
 			// Launch WSL with Windows Terminal if available, otherwise use wsl.exe directly
 			try {
+				console.log("  Trying wt.exe with WSL...");
 				// Try Windows Terminal first
 				spawn("wt.exe", [
 					"wsl", "-d", distribution, "--", "bash", "-c", wslCommand
@@ -110,6 +122,10 @@ export class TerminalLauncher {
 		workingDir: string,
 		platform: "windows" | "linux" | "macos"
 	): Promise<void> {
+		console.log("[AI Terminal] Launching system terminal:");
+		console.log("  Platform:", platform);
+		console.log("  Working dir:", workingDir);
+		console.log("  Command:", command);
 		if (platform === "macos") {
 			await this.launchMacTerminal(command, workingDir);
 		} else if (platform === "linux") {
@@ -170,10 +186,14 @@ end tell
 	}
 
 	/**
-	 * Launch Windows cmd.exe
+	 * Launch Windows PowerShell
 	 */
 	private async launchWindowsCmd(command: string, workingDir: string): Promise<void> {
-		spawn("cmd.exe", ["/k", `cd /d "${workingDir}" && ${command}`], {
+		spawn("powershell.exe", [
+			"-NoExit",
+			"-Command",
+			`Set-Location '${workingDir}'; ${command}`
+		], {
 			detached: true,
 			stdio: "ignore"
 		}).unref();

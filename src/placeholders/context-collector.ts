@@ -42,14 +42,26 @@ export class ContextCollector {
 	 */
 	getFilePath(file: TFile): string {
 		const adapter = this.app.vault.adapter;
-		const adapterRecord = adapter as unknown as Record<string, unknown>;
-		if (typeof adapterRecord.getFullPath === "function") {
-			const getFullPath = adapterRecord.getFullPath as (path: string) => string;
-			return getFullPath(file.path);
+		
+		// Use getBasePath + relative path for reliable filesystem path
+		if ('getBasePath' in adapter && typeof adapter.getBasePath === 'function') {
+			const basePath = adapter.getBasePath();
+			return basePath + "/" + file.path;
 		}
-		// Fallback: combine basePath with file path
-		const basePath = adapterRecord.basePath as string || "";
-		return basePath + "/" + file.path;
+		
+		// Fallback: check if getFilePath exists and convert file:// URI to path
+		if ('getFilePath' in adapter && typeof adapter.getFilePath === 'function') {
+			const fileUri = adapter.getFilePath(file.path);
+			// Remove file:// protocol if present
+			if (fileUri.startsWith('file://')) {
+				// file:///C:/path -> C:/path
+				return fileUri.replace(/^file:\/\/\//, '').replace(/^file:\/\//, '');
+			}
+			return fileUri;
+		}
+		
+		// Last resort: use vault path
+		return file.path;
 	}
 
 	/**
@@ -57,7 +69,12 @@ export class ContextCollector {
 	 */
 	getVaultPath(): string {
 		const adapter = this.app.vault.adapter;
-		return (adapter as unknown as Record<string, unknown>).basePath as string || "";
+		
+		if ('getBasePath' in adapter && typeof adapter.getBasePath === 'function') {
+			return adapter.getBasePath();
+		}
+		
+		return "";
 	}
 
 	/**
