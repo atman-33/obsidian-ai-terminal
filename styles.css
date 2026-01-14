@@ -1,8 +1,41 @@
 /*
-
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
+AI Terminal Plugin Styles
 */
+
+/* Placeholder reference section in settings */
+.ai-terminal-placeholder-reference {
+	margin-top: 1em;
+	padding: 1em;
+	background-color: var(--background-secondary);
+	border-radius: 6px;
+}
+
+.ai-terminal-placeholder-reference h4 {
+	margin-top: 0;
+	margin-bottom: 0.5em;
+}
+
+.ai-terminal-placeholder-reference ul {
+	margin-bottom: 0;
+	padding-left: 1.5em;
+}
+
+.ai-terminal-placeholder-reference li {
+	margin-bottom: 0.3em;
+}
+
+.ai-terminal-placeholder-reference code {
+	background-color: var(--code-background);
+	padding: 2px 4px;
+	border-radius: 3px;
+	font-size: 0.9em;
+}
+
+/* Modal button container */
+.modal-button-container {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 20px;
+}
+

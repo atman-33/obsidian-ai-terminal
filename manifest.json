@@ -1,11 +1,10 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "ai-terminal",
+	"name": "AI Terminal",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
-	"isDesktopOnly": false
+	"description": "Launch AI agents (GitHub Copilot CLI, OpenCode) in external terminals directly from Obsidian with customizable command templates.",
+	"author": "atman-33",
+	"authorUrl": "https://github.com/atman-33",
+	"isDesktopOnly": true
 }
