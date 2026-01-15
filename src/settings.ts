@@ -1,22 +1,11 @@
-import {App, PluginSettingTab, Setting, Platform} from "obsidian";
+import {App, PluginSettingTab, Setting} from "obsidian";
 import AITerminalPlugin from "./main";
 import {AITerminalSettings, PlatformType, AVAILABLE_PLACEHOLDERS} from "./types";
 import {CommandEditorModal} from "./ui/command-editor";
 import {CommandManager} from "./commands/command-manager";
 
-/**
- * Detect platform and return appropriate default terminal type
- */
-function getDefaultTerminalType(): PlatformType {
-	if (Platform.isWin) {
-		return "windows-terminal";
-	}
-	return "system";
-}
-
 export const DEFAULT_SETTINGS: AITerminalSettings = {
-	terminalType: getDefaultTerminalType(),
-	wslDistribution: "Ubuntu",
+	terminalType: "windows-terminal",
 	commands: [
 		{
 			id: "copilot-interactive",
@@ -82,28 +71,11 @@ export class AITerminalSettingTab extends PluginSettingTab {
 			.setDesc("Select which terminal to use when launching AI agents")
 			.addDropdown(dropdown => dropdown
 				.addOption("windows-terminal", "Windows terminal")
-				.addOption("wsl", "Windows subsystem for Linux (wsl)")
-				.addOption("system", "System default")
 				.setValue(this.plugin.settings.terminalType)
 				.onChange(async (value: PlatformType) => {
 					this.plugin.settings.terminalType = value;
 					await this.plugin.saveSettings();
-					this.display(); // Refresh to show/hide WSL options
 				}));
-
-		// WSL Distribution (shown only when WSL is selected)
-		if (this.plugin.settings.terminalType === "wsl") {
-			new Setting(containerEl)
-				.setName("Wsl distribution")
-				.setDesc("Name of the wsl distribution to use (for example, ubuntu or debian)")
-				.addText(text => text
-					.setPlaceholder("Ubuntu")
-					.setValue(this.plugin.settings.wslDistribution)
-					.onChange(async (value) => {
-						this.plugin.settings.wslDistribution = value;
-						await this.plugin.saveSettings();
-					}));
-		}
 
 		// Command Templates Section
 		new Setting(containerEl)

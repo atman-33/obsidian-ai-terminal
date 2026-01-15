@@ -4,7 +4,6 @@ import {CommandTemplate, ExecutionContext} from "../types";
 import {ContextCollector} from "../placeholders/context-collector";
 import {PlaceholderResolver} from "../placeholders/placeholder-resolver";
 import {TerminalLauncher} from "../terminal/terminal-launcher";
-import {detectPlatform} from "../terminal/path-converter";
 
 /**
  * Orchestrates command execution
@@ -48,29 +47,15 @@ export class CommandExecutor {
 				agent: fullContext.agent
 			});
 
-			const platform = detectPlatform();
-			const usePowerShellScript =
-				platform === "windows" &&
-				(this.plugin.settings.terminalType === "windows-terminal" || this.plugin.settings.terminalType === "system");
-
-			// Resolve placeholders
-			const resolvedCommand = usePowerShellScript
-				? this.placeholderResolver.resolveForPowerShell(
-					command.template,
-					fullContext,
-					{
-						defaultPrompt: command.defaultPrompt,
-						defaultAgent: command.defaultAgent
-					}
-				)
-				: this.placeholderResolver.resolve(
-					command.template,
-					fullContext,
-					{
-						defaultPrompt: command.defaultPrompt,
-						defaultAgent: command.defaultAgent
-					}
-				);
+			// Resolve placeholders (always use PowerShell script mode for Windows Terminal)
+			const resolvedCommand = this.placeholderResolver.resolveForPowerShell(
+				command.template,
+				fullContext,
+				{
+					defaultPrompt: command.defaultPrompt,
+					defaultAgent: command.defaultAgent
+				}
+			);
 
 			console.log('[AI Terminal] Resolved command:', resolvedCommand);
 
@@ -81,8 +66,7 @@ export class CommandExecutor {
 			await this.terminalLauncher.launch(
 				this.plugin.settings.terminalType,
 				resolvedCommand,
-				workingDir,
-				this.plugin.settings.wslDistribution
+				workingDir
 			);
 
 			new Notice(`Launched: ${command.name}`);

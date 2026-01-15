@@ -27,12 +27,12 @@ The AI Terminal Launcher is composed of four main subsystems that work together 
 │  Manager     │ │              │ │                  │
 └──────────────┘ └──────────────┘ └──────────────────┘
                                     │
-                      ┌─────────────┼─────────────┐
-                      ▼             ▼             ▼
-                ┌──────────┐  ┌──────────┐  ┌──────────┐
-                │ Windows  │  │   WSL    │  │  System  │
-                │ Terminal │  │ Terminal │  │ Default  │
-                └──────────┘  └──────────┘  └──────────┘
+                                    ▼
+                              ┌──────────┐
+                              │ Windows  │
+                              │ Terminal │
+                              │  (MVP)   │
+                              └──────────┘
 ```
 
 ## Component Design
@@ -53,8 +53,7 @@ interface CommandTemplate {
 }
 
 interface PluginSettings {
-  terminalType: 'windows-terminal' | 'wsl' | 'system';
-  wslDistribution: string;  // e.g., "Ubuntu", "Debian"
+  terminalType: 'windows-terminal';  // MVP: Windows Terminal only
   commands: CommandTemplate[];
 }
 ```

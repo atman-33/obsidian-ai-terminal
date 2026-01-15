@@ -51,17 +51,16 @@ Available placeholders for dynamic substitution:
 - **File Context Menu**: Right-click on files in the file explorer
 - **Editor Context Menu**: Right-click in the editor (with selection support)
 
-#### 4. Cross-Platform Terminal Support
-- Windows Terminal (native Windows)
-- WSL (Windows Subsystem for Linux) with path translation
-- System default terminal (Linux, macOS)
+#### 4. Terminal Support (MVP)
+- Windows Terminal only (PowerShell)
+- Future: WSL, Linux, macOS support
 
 ## Goals
 
 1. Enable seamless AI agent interaction from within Obsidian
 2. Provide flexible, user-customizable command templates
 3. Support both GitHub Copilot CLI and OpenCode with custom arguments
-4. Handle cross-platform terminal launching (Windows, WSL, Linux, macOS)
+4. Handle Windows Terminal launching with PowerShell (MVP)
 5. Minimize context switching for users
 
 ## Non-Goals
@@ -76,9 +75,8 @@ Available placeholders for dynamic substitution:
 
 - [ ] Users can define custom command templates in settings
 - [ ] Placeholders are correctly replaced based on context
-- [ ] Terminals launch successfully on Windows, WSL, and Linux
+- [ ] Windows Terminal launches successfully with PowerShell
 - [ ] Commands are accessible from command palette and context menus
-- [ ] WSL path translation works correctly (Windows paths → WSL paths)
 - [ ] Default values are used when placeholders cannot be resolved
 
 ## Affected Capabilities
@@ -100,8 +98,8 @@ This change introduces four new capabilities:
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Platform-specific terminal commands fail | High | Provide clear error messages and fallback options |
-| Path translation errors (Windows ↔ WSL) | Medium | Comprehensive path testing, validation in settings |
+| Windows Terminal not installed | High | Provide clear error messages with installation guidance |
+| PowerShell command escaping issues | Medium | Use Base64 encoding for commands to avoid escaping problems |
 | External CLI tools not installed | Medium | Validate tool availability, show helpful setup messages |
 | Command injection via placeholders | High | Sanitize all placeholder values, escape shell arguments |
 

@@ -3,7 +3,7 @@ import { TFile, Vault } from "obsidian";
 /**
  * Supported terminal types for launching
  */
-export type PlatformType = "windows-terminal" | "wsl" | "system";
+export type PlatformType = "windows-terminal";
 
 /**
  * Command template configuration for launching AI agents
@@ -37,9 +37,6 @@ export interface CommandTemplate {
 export interface AITerminalSettings {
 	/** Terminal type to use */
 	terminalType: PlatformType;
-	
-	/** WSL distribution name (only used when terminalType is 'wsl') */
-	wslDistribution: string;
 	
 	/** User-defined command templates */
 	commands: CommandTemplate[];
