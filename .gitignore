@@ -24,4 +24,5 @@ data.json
 .tmp/
 .claude/
 .github/agents/
+.github/instructions/
 .github/prompts/
