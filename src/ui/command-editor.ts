@@ -66,10 +66,10 @@ export class CommandEditorModal extends Modal {
 		// Template field
 		new Setting(contentEl)
 			.setName("Command template")
-			.setDesc("Command with placeholders (e.g., copilot -i \"<prompt>\")")
+			.setDesc("Command with placeholders (e.g., copilot -i <prompt>)")
 			.addTextArea(text => {
 				text
-					.setPlaceholder('copilot -i "<prompt>"')
+					.setPlaceholder('copilot -i <prompt>')
 					.setValue(this.command.template || "")
 					.onChange(value => {
 						this.command.template = value;

@@ -42,24 +42,41 @@ export class TerminalLauncher {
 	}
 
 	/**
+	 * Encode command as Base64 for PowerShell -EncodedCommand
+	 * PowerShell expects UTF-16LE encoding
+	 */
+	private encodeCommandForPowerShell(command: string): string {
+		// PowerShell -EncodedCommand requires UTF-16LE base64
+		const buffer = Buffer.from(command, 'utf16le');
+		return buffer.toString('base64');
+	}
+
+	/**
+	 * Wrap a PowerShell script with Set-Location to ensure correct working directory
+	 */
+	private wrapPowerShellScript(script: string, workingDir: string): string {
+		const escapedWorkingDir = workingDir.replace(/'/g, "''");
+		return `Set-Location '${escapedWorkingDir}'\n${script}`;
+	}
+
+	/**
 	 * Launch Windows Terminal
 	 */
 	private async launchWindowsTerminal(command: string, workingDir: string): Promise<void> {
 		try {
-			// Command is already escaped by escapeShell()
-			// Just wrap in script block for PowerShell
-			const scriptBlock = `& {${command}}`;
+			// Use Base64 encoding to avoid all escaping issues
+			const script = this.wrapPowerShellScript(command, workingDir);
+			const encodedCommand = this.encodeCommandForPowerShell(script);
 			
 			const args = [
 				"-d", workingDir,
-				"powershell", "-NoExit", "-Command", scriptBlock
+				"powershell", "-NoExit", "-EncodedCommand", encodedCommand
 			];
 
 			console.log("[AI Terminal] Launching Windows Terminal:");
 			console.log("  Working dir:", workingDir);
 			console.log("  Command:", command);
-			console.log("  Script block:", scriptBlock);
-			console.log("  Full args:", ["wt.exe", ...args]);
+			console.log("  Encoded (Base64):", encodedCommand.substring(0, 50) + "...");
 
 			spawn("wt.exe", args, {
 				detached: true,
@@ -192,13 +209,14 @@ end tell
 	 * Launch Windows PowerShell
 	 */
 	private async launchWindowsCmd(command: string, workingDir: string): Promise<void> {
-		// Command is already escaped by escapeShell()
-		const scriptBlock = `& {Set-Location '${workingDir.replace(/'/g, "''")}'; ${command}}`;
+		// Use Base64 encoding to avoid escaping issues
+		const script = this.wrapPowerShellScript(command, workingDir);
+		const encodedCommand = this.encodeCommandForPowerShell(script);
 		
 		spawn("powershell.exe", [
 			"-NoExit",
-			"-Command",
-			scriptBlock
+			"-EncodedCommand",
+			encodedCommand
 		], {
 			detached: true,
 			stdio: "ignore"

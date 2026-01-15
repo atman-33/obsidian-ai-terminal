@@ -9,6 +9,41 @@ export class PlaceholderResolver {
 	constructor(private contextCollector: ContextCollector) {}
 
 	/**
+	 * Resolve placeholders for PowerShell execution using here-strings and variables
+	 * This avoids argument splitting issues with quotes/newlines when invoking native commands.
+	 */
+	resolveForPowerShell(
+		template: string,
+		context: ExecutionContext,
+		defaults: Pick<CommandTemplate, "defaultPrompt" | "defaultAgent">
+	): string {
+		const rawValues = this.getRawPlaceholderValues(context);
+
+		// Build prompt/agent raw values (prompt may contain nested placeholders)
+		let promptValue = context.prompt || defaults.defaultPrompt || "";
+		promptValue = this.replacePlaceholdersWithValues(promptValue, rawValues);
+		const agentValue = context.agent || defaults.defaultAgent || "";
+
+		// Build command by substituting placeholders with PowerShell variables
+		const command = this.replacePlaceholdersWithVariables(template);
+
+		// Build PowerShell script with here-strings
+		const scriptLines = [
+			this.buildHereString("$aiPrompt", promptValue),
+			this.buildHereString("$aiAgent", agentValue),
+			this.buildHereString("$aiFile", rawValues.file),
+			this.buildHereString("$aiPath", rawValues.path),
+			this.buildHereString("$aiRelativePath", rawValues.relativePath),
+			this.buildHereString("$aiDir", rawValues.dir),
+			this.buildHereString("$aiVault", rawValues.vault),
+			this.buildHereString("$aiSelection", rawValues.selection),
+			command
+		].filter(line => line.length > 0);
+
+		return scriptLines.join("\n");
+	}
+
+	/**
 	 * Resolve all placeholders in a template
 	 */
 	resolve(
@@ -34,6 +69,67 @@ export class PlaceholderResolver {
 		resolved = this.resolveAllPlaceholders(resolved, context);
 
 		return resolved;
+	}
+
+	private buildHereString(variableName: string, value: string): string {
+		if (value === "") {
+			return `${variableName} = ''`;
+		}
+		return `${variableName} = @'\n${value}\n'@`;
+	}
+
+	private getRawPlaceholderValues(context: ExecutionContext): {
+		file: string;
+		path: string;
+		relativePath: string;
+		dir: string;
+		vault: string;
+		selection: string;
+	} {
+		let file = "";
+		let path = "";
+		let relativePath = "";
+		let dir = "";
+		if (context.file) {
+			file = context.file.name;
+			path = this.contextCollector.getFilePath(context.file);
+			relativePath = this.contextCollector.getRelativePath(context.file);
+			dir = this.contextCollector.getDirectoryPath(context.file);
+		}
+
+		return {
+			file,
+			path,
+			relativePath,
+			dir,
+			vault: this.contextCollector.getVaultPath(),
+			selection: context.selection || ""
+		};
+	}
+
+	private replacePlaceholdersWithValues(
+		text: string,
+		values: {file: string; path: string; relativePath: string; dir: string; vault: string; selection: string;}
+	): string {
+		return text
+			.replace(/<file>/g, values.file)
+			.replace(/<path>/g, values.path)
+			.replace(/<relative-path>/g, values.relativePath)
+			.replace(/<dir>/g, values.dir)
+			.replace(/<vault>/g, values.vault)
+			.replace(/<selection>/g, values.selection);
+	}
+
+	private replacePlaceholdersWithVariables(text: string): string {
+		return text
+			.replace(/<prompt>/g, "$aiPrompt")
+			.replace(/<agent>/g, "$aiAgent")
+			.replace(/<file>/g, "$aiFile")
+			.replace(/<path>/g, "$aiPath")
+			.replace(/<relative-path>/g, "$aiRelativePath")
+			.replace(/<dir>/g, "$aiDir")
+			.replace(/<vault>/g, "$aiVault")
+			.replace(/<selection>/g, "$aiSelection");
 	}
 
 	/**
@@ -90,20 +186,20 @@ export class PlaceholderResolver {
 
 	/**
 	 * Escape shell special characters to prevent command injection
-	 * Uses double quotes for PowerShell with backtick escaping
+	 * For PowerShell with Base64 encoding:
+	 * - Base64 bypasses command-line parsing (3-layer parsing)
+	 * - BUT PowerShell script parser still runs on decoded content
+	 * - Use PowerShell standard backtick escaping
 	 */
 	private escapeShell(text: string): string {
 		if (!text) return '""';
 		
-		// Use double quotes with backtick escaping for PowerShell
-		// This handles newlines and special characters properly
+		// PowerShell uses backtick (`) as escape character, not backslash (\)
 		const escaped = text
-			.replace(/`/g, '``')     // Escape backticks first
-			.replace(/"/g, '`"')    // Escape double quotes
-			.replace(/\$/g, '`$')   // Escape dollar signs
-			.replace(/</g, '`<')     // Escape less-than (PowerShell redirection)
-			.replace(/>/g, '`>')     // Escape greater-than (PowerShell redirection)
-			.replace(/\r?\n/g, '`n'); // Convert newlines to PowerShell escape sequence
+			.replace(/`/g, '``')      // Escape backtick itself first
+			.replace(/"/g, '`"')     // Escape double quotes
+			.replace(/\$/g, '`$')     // Escape dollar signs (variable expansion)
+			.replace(/\r?\n/g, '`n'); // Escape newlines
 		
 		return '"' + escaped + '"';
 	}

@@ -21,14 +21,14 @@ export const DEFAULT_SETTINGS: AITerminalSettings = {
 		{
 			id: "copilot-interactive",
 			name: "Copilot - Interactive",
-			template: 'copilot -i "<prompt>"',
+			template: 'copilot -i <prompt>',
 			defaultPrompt: "Fix issues in <file>",
 			enabled: true
 		},
 		{
 			id: "copilot-with-agent",
 			name: "Copilot - With Agent",
-			template: 'copilot --agent "<agent>" -i "<prompt>"',
+			template: 'copilot --agent <agent> -i <prompt>',
 			defaultPrompt: "Review <file>",
 			defaultAgent: "code-reviewer",
 			enabled: true
@@ -36,7 +36,7 @@ export const DEFAULT_SETTINGS: AITerminalSettings = {
 		{
 			id: "opencode-interactive",
 			name: "OpenCode - Interactive",
-			template: 'opencode --agent "<agent>" --prompt "<prompt>"',
+			template: 'opencode --agent <agent> --prompt <prompt>',
 			defaultPrompt: "Analyze <file>",
 			defaultAgent: "noctis",
 			enabled: true
@@ -44,7 +44,7 @@ export const DEFAULT_SETTINGS: AITerminalSettings = {
 		{
 			id: "opencode-simple",
 			name: "OpenCode - Simple",
-			template: 'opencode --prompt "<prompt>"',
+			template: 'opencode --prompt <prompt>',
 			defaultPrompt: "Help with <file>",
 			enabled: true
 		},
