@@ -39,6 +39,14 @@ export class CommandExecutor {
 				return;
 			}
 
+			// Debug: log context before resolution
+			console.log('[AI Terminal] Context before resolution:', {
+				file: fullContext.file?.name,
+				selection: fullContext.selection,
+				prompt: fullContext.prompt,
+				agent: fullContext.agent
+			});
+
 			// Resolve placeholders
 			const resolvedCommand = this.placeholderResolver.resolve(
 				command.template,
@@ -48,6 +56,8 @@ export class CommandExecutor {
 					defaultAgent: command.defaultAgent
 				}
 			);
+
+			console.log('[AI Terminal] Resolved command:', resolvedCommand);
 
 			// Get working directory
 			const workingDir = this.placeholderResolver.getWorkingDirectory(fullContext);

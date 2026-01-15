@@ -46,16 +46,19 @@ export class TerminalLauncher {
 	 */
 	private async launchWindowsTerminal(command: string, workingDir: string): Promise<void> {
 		try {
-			// Windows Terminal command format with PowerShell
-			// wt.exe -d "C:\path" powershell -NoExit -Command "command"
+			// Command is already escaped by escapeShell()
+			// Just wrap in script block for PowerShell
+			const scriptBlock = `& {${command}}`;
+			
 			const args = [
 				"-d", workingDir,
-				"powershell", "-NoExit", "-Command", command
+				"powershell", "-NoExit", "-Command", scriptBlock
 			];
 
 			console.log("[AI Terminal] Launching Windows Terminal:");
 			console.log("  Working dir:", workingDir);
 			console.log("  Command:", command);
+			console.log("  Script block:", scriptBlock);
 			console.log("  Full args:", ["wt.exe", ...args]);
 
 			spawn("wt.exe", args, {
@@ -189,10 +192,13 @@ end tell
 	 * Launch Windows PowerShell
 	 */
 	private async launchWindowsCmd(command: string, workingDir: string): Promise<void> {
+		// Command is already escaped by escapeShell()
+		const scriptBlock = `& {Set-Location '${workingDir.replace(/'/g, "''")}'; ${command}}`;
+		
 		spawn("powershell.exe", [
 			"-NoExit",
 			"-Command",
-			`Set-Location '${workingDir}'; ${command}`
+			scriptBlock
 		], {
 			detached: true,
 			stdio: "ignore"

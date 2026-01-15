@@ -18,6 +18,30 @@ export class PlaceholderResolver {
 	): string {
 		let resolved = template;
 
+		// Prompt placeholder (with nested resolution) - resolve first
+		if (resolved.includes("<prompt>")) {
+			let promptValue = context.prompt || defaults.defaultPrompt || "";
+			// Resolve nested placeholders in prompt
+			promptValue = this.resolveAllPlaceholders(promptValue, context);
+			resolved = resolved.replace(/<prompt>/g, this.escapeShell(promptValue));
+		}
+
+		// Agent placeholder
+		const agentValue = context.agent || defaults.defaultAgent || "";
+		resolved = resolved.replace(/<agent>/g, this.escapeShell(agentValue));
+
+		// Resolve remaining placeholders in template
+		resolved = this.resolveAllPlaceholders(resolved, context);
+
+		return resolved;
+	}
+
+	/**
+	 * Resolve all placeholders except <prompt> and <agent>
+	 */
+	private resolveAllPlaceholders(text: string, context: ExecutionContext): string {
+		let resolved = text;
+
 		// File-related placeholders
 		if (context.file) {
 			resolved = this.replaceFilePlaceholders(resolved, context.file);
@@ -36,20 +60,6 @@ export class PlaceholderResolver {
 		// Selection placeholder
 		const selection = context.selection || "";
 		resolved = resolved.replace(/<selection>/g, this.escapeShell(selection));
-
-		// Prompt placeholder (with nested resolution)
-		if (resolved.includes("<prompt>")) {
-			let promptValue = context.prompt || defaults.defaultPrompt || "";
-			// Resolve nested placeholders in prompt
-			if (context.file) {
-				promptValue = this.replaceFilePlaceholders(promptValue, context.file);
-			}
-			resolved = resolved.replace(/<prompt>/g, this.escapeShell(promptValue));
-		}
-
-		// Agent placeholder
-		const agentValue = context.agent || defaults.defaultAgent || "";
-		resolved = resolved.replace(/<agent>/g, this.escapeShell(agentValue));
 
 		return resolved;
 	}
@@ -80,13 +90,22 @@ export class PlaceholderResolver {
 
 	/**
 	 * Escape shell special characters to prevent command injection
+	 * Uses double quotes for PowerShell with backtick escaping
 	 */
 	private escapeShell(text: string): string {
-		if (!text) return "";
-
-		// For safety, we'll use double quotes and escape special characters
-		// This works on both Windows and Unix-like systems
-		return '"' + text.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\$/g, "\\$").replace(/`/g, "\\`") + '"';
+		if (!text) return '""';
+		
+		// Use double quotes with backtick escaping for PowerShell
+		// This handles newlines and special characters properly
+		const escaped = text
+			.replace(/`/g, '``')     // Escape backticks first
+			.replace(/"/g, '`"')    // Escape double quotes
+			.replace(/\$/g, '`$')   // Escape dollar signs
+			.replace(/</g, '`<')     // Escape less-than (PowerShell redirection)
+			.replace(/>/g, '`>')     // Escape greater-than (PowerShell redirection)
+			.replace(/\r?\n/g, '`n'); // Convert newlines to PowerShell escape sequence
+		
+		return '"' + escaped + '"';
 	}
 
 	/**
