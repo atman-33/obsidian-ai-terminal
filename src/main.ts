@@ -1,8 +1,9 @@
 import {Plugin, TFile, Menu, Editor, MarkdownView} from 'obsidian';
-import {DEFAULT_SETTINGS, AITerminalSettingTab} from "./settings";
+import {AITerminalSettingTab, migrateSettings} from "./settings";
 import {AITerminalSettings} from "./types";
 import {CommandManager} from "./commands/command-manager";
 import {CommandExecutor} from "./commands/command-executor";
+import {DirectPromptModal} from "./ui/direct-prompt-modal";
 
 export default class AITerminalPlugin extends Plugin {
 	settings: AITerminalSettings;
@@ -31,7 +32,11 @@ export default class AITerminalPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<AITerminalSettings>);
+		const rawSettings = await this.loadData() as Partial<AITerminalSettings> | null;
+		this.settings = migrateSettings(rawSettings ?? {});
+		if (!rawSettings || !rawSettings.agents || !rawSettings.settingsVersion) {
+			await this.saveData(this.settings);
+		}
 	}
 
 	async saveSettings() {
@@ -45,6 +50,15 @@ export default class AITerminalPlugin extends Plugin {
 	 */
 	private registerCommands(): void {
 		const enabledCommands = this.commandManager.getEnabledCommands();
+
+		this.addCommand({
+			id: "ai-terminal-direct-prompt",
+			name: "AI Terminal: Direct Prompt",
+			callback: () => {
+				const activeFile = this.app.workspace.getActiveFile();
+				this.openDirectPromptModal(activeFile ?? undefined, undefined);
+			}
+		});
 
 		enabledCommands.forEach(cmd => {
 			this.addCommand({
@@ -96,12 +110,25 @@ export default class AITerminalPlugin extends Plugin {
 	private addCommandsToMenu(menu: Menu, file: TFile | null, selection?: string): void {
 		const enabledCommands = this.commandManager.getEnabledCommands();
 
-		if (enabledCommands.length === 0) return;
-
 		// Add separator before our commands
 		menu.addSeparator();
 
-		// Create submenu
+		menu.addItem(item => {
+			item
+				.setTitle("AI Terminal: Direct Prompt...")
+				.setIcon("edit")
+				.onClick(() => {
+					this.openDirectPromptModal(file ?? undefined, selection);
+				});
+		});
+
+		if (enabledCommands.length === 0) {
+			return;
+		}
+
+		// Separator between direct prompt and templates
+		menu.addSeparator();
+
 		enabledCommands.forEach(cmd => {
 			menu.addItem(item => {
 				item
@@ -116,5 +143,10 @@ export default class AITerminalPlugin extends Plugin {
 					});
 			});
 		});
+	}
+
+	private openDirectPromptModal(file?: TFile, selection?: string): void {
+		const modal = new DirectPromptModal(this.app, this, file, selection);
+		modal.open();
 	}
 }

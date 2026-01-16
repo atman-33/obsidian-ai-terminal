@@ -31,7 +31,7 @@ export class CommandManager {
 		}
 
 		// Validate template
-		this.validateTemplate(command.template);
+		this.validateTemplate(command.template, command.agentName);
 
 		this.plugin.settings.commands.push(command);
 		await this.plugin.saveSettings();
@@ -57,13 +57,13 @@ export class CommandManager {
 			template: updates.template ?? current.template,
 			enabled: updates.enabled ?? current.enabled,
 			defaultPrompt: updates.defaultPrompt ?? current.defaultPrompt,
-			defaultAgent: updates.defaultAgent ?? current.defaultAgent,
+			agentName: updates.agentName ?? current.agentName,
 			platform: updates.platform ?? current.platform
 		};
 		
 		// Validate template if changed
-		if (updates.template) {
-			this.validateTemplate(updates.template);
+		if (updates.template || updates.agentName) {
+			this.validateTemplate(updated.template, updated.agentName);
 		}
 
 		this.plugin.settings.commands[index] = updated;
@@ -135,7 +135,17 @@ export class CommandManager {
 	/**
 	 * Validate command template syntax
 	 */
-	validateTemplate(template: string): void {
+	validateTemplate(template: string, agentName?: string): void {
+		// Validate agent reference
+		if (!agentName) {
+			throw new Error("Selected agent no longer exists. Please choose another agent.");
+		}
+
+		const agentExists = this.plugin.settings.agents.some(agent => agent.name === agentName);
+		if (!agentExists) {
+			throw new Error("Selected agent no longer exists. Please choose another agent.");
+		}
+
 		// Extract placeholders from template
 		const placeholderRegex = /<([^>]+)>/g;
 		const matches = Array.from(template.matchAll(placeholderRegex));

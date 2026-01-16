@@ -1,59 +1,196 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
 import AITerminalPlugin from "./main";
-import {AITerminalSettings, PlatformType, AVAILABLE_PLACEHOLDERS} from "./types";
+import {AgentConfig, AITerminalSettings, CommandTemplate, PlatformType, AVAILABLE_PLACEHOLDERS} from "./types";
 import {CommandEditorModal} from "./ui/command-editor";
 import {CommandManager} from "./commands/command-manager";
+import {AgentListEditor} from "./ui/agent-list-editor";
+import {generateUUID} from "./utils/uuid";
+
+const SETTINGS_VERSION = 3;
+
+const DEFAULT_AGENTS: AgentConfig[] = [
+	{
+		name: "copilot",
+		enabled: true
+	},
+	{
+		name: "opencode",
+		enabled: true
+	}
+];
 
 export const DEFAULT_SETTINGS: AITerminalSettings = {
 	terminalType: "windows-terminal",
+	agents: DEFAULT_AGENTS.map(agent => ({...agent})),
 	commands: [
 		{
-			id: "copilot-interactive",
+			id: "a3d5f891-2c4b-4e9a-b123-456789abcdef",
 			name: "Copilot - Interactive",
-			template: 'copilot -i <prompt>',
+			template: '<agent> -i <prompt>',
 			defaultPrompt: "Fix issues in <file>",
+			agentName: "copilot",
 			enabled: true
 		},
 		{
-			id: "copilot-with-agent",
+			id: "b7e2a3c4-5d6f-4a8b-9c12-34567890efab",
 			name: "Copilot - With Agent",
-			template: 'copilot --agent <agent> -i <prompt>',
+			template: '<agent> --agent code-reviewer -i <prompt>',
 			defaultPrompt: "Review <file>",
-			defaultAgent: "code-reviewer",
+			agentName: "copilot",
 			enabled: true
 		},
 		{
-			id: "opencode-interactive",
+			id: "c1f3e5d7-8a9b-4c2d-a345-678901bcdef0",
 			name: "OpenCode - Interactive",
-			template: 'opencode --agent <agent> --prompt <prompt>',
+			template: '<agent> --agent noctis --prompt <prompt>',
 			defaultPrompt: "Analyze <file>",
-			defaultAgent: "noctis",
+			agentName: "opencode",
 			enabled: true
 		},
 		{
-			id: "opencode-simple",
+			id: "d2e4f6a8-9b1c-4d5e-b678-901234cdef56",
 			name: "OpenCode - Simple",
-			template: 'opencode --prompt <prompt>',
+			template: '<agent> --prompt <prompt>',
 			defaultPrompt: "Help with <file>",
+			agentName: "opencode",
 			enabled: true
 		},
 		{
-			id: "terminal-only",
+			id: "e3f5a7b9-0c2d-4e6f-c789-012345def678",
 			name: "Terminal Only",
 			template: "bash",
+			agentName: "copilot",
 			enabled: true
 		}
-	]
+ 	],
+	settingsVersion: SETTINGS_VERSION
+}
+
+type LegacyCommandTemplate = Omit<CommandTemplate, "agentName"> & { defaultAgent?: string; agentId?: string; agentName?: string };
+
+function createUniqueAgentName(base: string, existing: Set<string>): string {
+	const trimmed = base.trim();
+	const baseName = trimmed.length > 0 ? trimmed : "agent";
+	let candidate = baseName;
+	let suffix = 1;
+	while (existing.has(normalizeAgentMatch(candidate))) {
+		candidate = `${baseName}-${suffix}`;
+		suffix += 1;
+	}
+	existing.add(normalizeAgentMatch(candidate));
+	return candidate;
+}
+
+function normalizeAgentMatch(value: string): string {
+	return value.trim().toLowerCase();
+}
+
+function isValidUUID(id: string): boolean {
+	const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	return uuidRegex.test(id);
+}
+
+export function migrateSettings(
+	settings: Partial<AITerminalSettings> & { commands?: LegacyCommandTemplate[] }
+): AITerminalSettings {
+	const base: AITerminalSettings = {
+		...DEFAULT_SETTINGS,
+		...settings,
+		settingsVersion: SETTINGS_VERSION
+	};
+
+	if (settings.agents && settings.agents.length > 0 && settings.settingsVersion !== undefined && settings.settingsVersion >= SETTINGS_VERSION) {
+		return base;
+	}
+
+	const legacyCommands = (settings.commands ?? DEFAULT_SETTINGS.commands) as LegacyCommandTemplate[];
+	const rawAgents = settings.agents && settings.agents.length > 0
+		? settings.agents
+		: DEFAULT_AGENTS.map(agent => ({...agent}));
+	const existingNames = new Set<string>();
+	const agentsByMatch = new Map<string, AgentConfig>();
+	const agents: AgentConfig[] = [];
+
+	rawAgents.forEach(agent => {
+		const legacyAgent = agent as AgentConfig & { id?: string; command?: string };
+		const candidate = legacyAgent.command?.trim() || legacyAgent.name?.trim() || legacyAgent.id?.trim() || "";
+		if (!candidate) {
+			return;
+		}
+		const name = createUniqueAgentName(candidate, existingNames);
+		const normalizedName = normalizeAgentMatch(name);
+		const mapped: AgentConfig = {
+			name,
+			enabled: legacyAgent.enabled ?? true
+		};
+		agents.push(mapped);
+		agentsByMatch.set(normalizedName, mapped);
+		if (legacyAgent.id) {
+			agentsByMatch.set(normalizeAgentMatch(legacyAgent.id), mapped);
+		}
+		if (legacyAgent.name) {
+			agentsByMatch.set(normalizeAgentMatch(legacyAgent.name), mapped);
+		}
+		if (legacyAgent.command) {
+			agentsByMatch.set(normalizeAgentMatch(legacyAgent.command), mapped);
+		}
+	});
+
+	const migratedCommands = legacyCommands.map(command => {
+		const legacyAgent = command.defaultAgent?.trim();
+		let agentName = command.agentName ?? command.agentId;
+		if (!agentName) {
+			if (legacyAgent) {
+				const match = agentsByMatch.get(normalizeAgentMatch(legacyAgent));
+				if (match) {
+					agentName = match.name;
+				} else {
+					const name = createUniqueAgentName(legacyAgent, existingNames);
+					const newAgent: AgentConfig = {
+						name,
+						enabled: true
+					};
+					agents.push(newAgent);
+					agentsByMatch.set(normalizeAgentMatch(newAgent.name), newAgent);
+					agentName = newAgent.name;
+				}
+			} else {
+				agentName = agents[0]?.name ?? "copilot";
+			}
+		}
+
+		const {defaultAgent, agentId, ...rest} = command as LegacyCommandTemplate;
+		const migratedCommand = {
+			...rest,
+			agentName
+		} as CommandTemplate;
+		
+		// Migrate non-UUID IDs to UUID
+		if (!isValidUUID(migratedCommand.id)) {
+			migratedCommand.id = generateUUID();
+		}
+		
+		return migratedCommand;
+	});
+
+	return {
+		...base,
+		agents,
+		commands: migratedCommands,
+		settingsVersion: SETTINGS_VERSION
+	};
 }
 
 export class AITerminalSettingTab extends PluginSettingTab {
 	plugin: AITerminalPlugin;
 	private commandManager: CommandManager;
+	private agentListEditor: AgentListEditor;
 
 	constructor(app: App, plugin: AITerminalPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 		this.commandManager = new CommandManager(plugin);
+		this.agentListEditor = new AgentListEditor(app, plugin);
 	}
 
 	display(): void {
@@ -77,6 +214,9 @@ export class AITerminalSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		// Agent List Section
+		this.agentListEditor.render(containerEl, () => this.display());
+
 		// Command Templates Section
 		new Setting(containerEl)
 			.setName("Command templates")
@@ -98,6 +238,7 @@ export class AITerminalSettingTab extends PluginSettingTab {
 					const modal = new CommandEditorModal(
 						this.app,
 						null,
+						this.plugin.settings.agents,
 						async (command) => {
 							await this.commandManager.addCommand(command);
 							this.display(); // Refresh settings
@@ -135,6 +276,7 @@ export class AITerminalSettingTab extends PluginSettingTab {
 						const modal = new CommandEditorModal(
 							this.app,
 							{...command},
+							this.plugin.settings.agents,
 							async (updated) => {
 								await this.commandManager.updateCommand(command.id, updated);
 								this.display();

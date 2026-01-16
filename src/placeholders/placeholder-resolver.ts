@@ -1,5 +1,5 @@
 import {TFile} from "obsidian";
-import {ExecutionContext, CommandTemplate} from "../types";
+import {ExecutionContext} from "../types";
 import {ContextCollector} from "./context-collector";
 
 /**
@@ -15,14 +15,14 @@ export class PlaceholderResolver {
 	resolveForPowerShell(
 		template: string,
 		context: ExecutionContext,
-		defaults: Pick<CommandTemplate, "defaultPrompt" | "defaultAgent">
+		defaults: { defaultPrompt?: string; agentCommand?: string }
 	): string {
 		const rawValues = this.getRawPlaceholderValues(context);
 
 		// Build prompt/agent raw values (prompt may contain nested placeholders)
 		let promptValue = context.prompt || defaults.defaultPrompt || "";
 		promptValue = this.replacePlaceholdersWithValues(promptValue, rawValues);
-		const agentValue = context.agent || defaults.defaultAgent || "";
+		const agentValue = context.agent || defaults.agentCommand || "";
 
 		// Build command by substituting placeholders with PowerShell variables
 		const command = this.replacePlaceholdersWithVariables(template);
@@ -49,7 +49,7 @@ export class PlaceholderResolver {
 	resolve(
 		template: string,
 		context: ExecutionContext,
-		defaults: Pick<CommandTemplate, "defaultPrompt" | "defaultAgent">
+		defaults: { defaultPrompt?: string; agentCommand?: string }
 	): string {
 		let resolved = template;
 
@@ -62,7 +62,7 @@ export class PlaceholderResolver {
 		}
 
 		// Agent placeholder
-		const agentValue = context.agent || defaults.defaultAgent || "";
+		const agentValue = context.agent || defaults.agentCommand || "";
 		resolved = resolved.replace(/<agent>/g, this.escapeShell(agentValue));
 
 		// Resolve remaining placeholders in template

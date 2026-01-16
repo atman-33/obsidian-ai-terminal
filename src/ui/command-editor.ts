@@ -1,5 +1,6 @@
 import {App, Modal, Setting, Notice} from "obsidian";
-import {CommandTemplate, AVAILABLE_PLACEHOLDERS} from "../types";
+import {AgentConfig, CommandTemplate, AVAILABLE_PLACEHOLDERS} from "../types";
+import {generateUUID} from "../utils/uuid";
 
 /**
  * Modal for creating or editing command templates
@@ -9,23 +10,27 @@ export class CommandEditorModal extends Modal {
 	private isEdit: boolean;
 	private originalId?: string;
 	private onSave: (command: CommandTemplate) => Promise<void>;
+	private agents: AgentConfig[];
 	private isDirty = false;
 	private skipConfirmation = false;
 
 	constructor(
 		app: App,
 		command: Partial<CommandTemplate> | null,
+		agents: AgentConfig[],
 		onSave: (command: CommandTemplate) => Promise<void>
 	) {
 		super(app);
 		this.isEdit = !!command;
 		this.originalId = command?.id;
+		this.agents = agents;
+		const defaultAgentName = this.getEnabledAgents()[0]?.name ?? "";
 		this.command = command || {
-			id: "",
+			id: generateUUID(),
 			name: "",
 			template: "",
 			defaultPrompt: "",
-			defaultAgent: "",
+			agentName: defaultAgentName,
 			enabled: true
 		};
 		this.onSave = onSave;
@@ -36,24 +41,6 @@ export class CommandEditorModal extends Modal {
 		
 		contentEl.empty();
 		contentEl.createEl("h2", {text: this.isEdit ? "Edit Command Template" : "New Command Template"});
-
-		// ID field
-		new Setting(contentEl)
-			.setName("Command ID")
-			.setDesc("Unique identifier (kebab-case, no spaces)")
-			.addText(text => {
-				text
-					.setPlaceholder("My-command-id")
-					.setValue(this.command.id || "")
-					.onChange(value => {
-						this.isDirty = true;
-						this.command.id = value.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-					});
-				
-				if (this.isEdit) {
-					text.setDisabled(true);
-				}
-			});
 
 		// Name field
 		new Setting(contentEl)
@@ -101,17 +88,49 @@ export class CommandEditorModal extends Modal {
 			});
 		promptSetting.settingEl.addClass("ai-terminal-vertical-field");
 
-		// Default Agent field
-		new Setting(contentEl)
-			.setName("Default agent (optional)")
-			.setDesc("Default value for <agent> placeholder")
-			.addText(text => text
-				.setPlaceholder("Agent name")
-				.setValue(this.command.defaultAgent || "")
-				.onChange(value => {
+		// Agent selection
+		const enabledAgents = this.getEnabledAgents();
+		const currentAgent = this.command.agentName
+			? this.agents.find(agent => agent.name === this.command.agentName)
+			: undefined;
+		const isMissingAgent = !!this.command.agentName && !currentAgent;
+		const isDisabledAgent = !!currentAgent && !currentAgent.enabled;
+
+		const agentSetting = new Setting(contentEl)
+			.setName("Agent")
+			.setDesc("Select the AI agent for this template")
+			.addDropdown(dropdown => {
+				if (isMissingAgent) {
+					dropdown.addOption(this.command.agentName || "", `[Deleted Agent] (${this.command.agentName})`);
+				} else if (isDisabledAgent) {
+					dropdown.addOption(this.command.agentName || "", `[Disabled Agent] ${currentAgent?.name ?? ""}`.trim());
+				}
+
+				enabledAgents.forEach(agent => {
+					dropdown.addOption(agent.name, agent.name);
+				});
+
+				const fallbackAgentName = enabledAgents[0]?.name ?? this.command.agentName ?? "";
+				if (!this.command.agentName && fallbackAgentName) {
+					this.command.agentName = fallbackAgentName;
+				}
+				dropdown.setValue(this.command.agentName || fallbackAgentName);
+				dropdown.setDisabled(enabledAgents.length === 0);
+				dropdown.onChange(value => {
 					this.isDirty = true;
-					this.command.defaultAgent = value;
-				}));
+					this.command.agentName = value;
+				});
+			});
+
+		if (enabledAgents.length === 0) {
+			agentSetting.setDesc("Please configure at least one AI agent in settings.");
+		}
+		if (isMissingAgent) {
+			contentEl.createEl("p", {
+				text: "⚠️ This template references a deleted agent. Please select a new agent.",
+				cls: "setting-item-description"
+			});
+		}
 
 		// Enabled toggle
 		new Setting(contentEl)
@@ -150,6 +169,10 @@ export class CommandEditorModal extends Modal {
 		saveButton.addEventListener("click", () => {
 			void this.save();
 		});
+	}
+
+	private getEnabledAgents(): AgentConfig[] {
+		return this.agents.filter(agent => agent.enabled);
 	}
 
 	private shouldConfirmDiscard(): boolean {
@@ -193,6 +216,11 @@ export class CommandEditorModal extends Modal {
 		// Validation
 		if (!this.command.id || !this.command.name || !this.command.template) {
 			new Notice("Please fill in all required fields (ID, name, template)");
+			return;
+		}
+
+		if (!this.command.agentName) {
+			new Notice("Please select an agent for this command.");
 			return;
 		}
 

@@ -25,18 +25,25 @@ export class CommandExecutor {
 	async executeCommand(
 		command: CommandTemplate,
 		context: Partial<ExecutionContext>
-	): Promise<void> {
+	): Promise<boolean> {
 		try {
+			const agent = this.plugin.settings.agents.find(current => current.name === command.agentName);
+			if (!agent) {
+				new Notice(`Agent '${command.agentName}' not found. Please update template.`);
+				return false;
+			}
+
 			// Build full execution context
 			const fullContext: ExecutionContext = {
 				...context,
+				agent: context.agent ?? agent.name,
 				vault: this.plugin.app.vault
 			};
 
 			// Check if file context is required
 			if (this.placeholderResolver.requiresFileContext(command.template) && !fullContext.file) {
 				new Notice("This command requires an active file. Please open a file and try again.");
-				return;
+				return false;
 			}
 
 			// Debug: log context before resolution
@@ -53,7 +60,7 @@ export class CommandExecutor {
 				fullContext,
 				{
 					defaultPrompt: command.defaultPrompt,
-					defaultAgent: command.defaultAgent
+					agentCommand: agent.name
 				}
 			);
 
@@ -70,10 +77,12 @@ export class CommandExecutor {
 			);
 
 			new Notice(`Launched: ${command.name}`);
+			return true;
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			new Notice(`Failed to execute command: ${message}`);
 			console.error("Command execution error:", error);
+			return false;
 		}
 	}
 }
