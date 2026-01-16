@@ -1,29 +1,13 @@
-# Spec Delta: Command Template Editor UX Improvements
+# command-template-editor-ux Specification
 
-## Target Spec
-`command-templates`
-
-## Change Type
-MODIFIED - Adding new scenarios to existing requirements and one new requirement
-
-## Summary
-Enhance the command template editor modal with unsaved changes protection and vertical layout for multi-line text inputs to improve user experience and editing comfort.
-
----
-
-## MODIFIED Requirements
-
-### Requirement: Edit existing command template
+## Purpose
+TBD - created by archiving change improve-command-editor-ux. Update Purpose after archive.
+## Requirements
+### Requirement: Warn users before discarding unsaved changes
 
 The command template editor MUST warn users before discarding unsaved changes to prevent accidental data loss.
 
-**Change**: Add scenarios for unsaved changes handling
-
-**Existing Scenarios**: (preserved)
-- Edit template fields successfully
-- Persist changes when saved
-
-#### Scenario: Warn when closing with unsaved changes
+#### Scenario: Display confirmation when closing with unsaved changes
 
 **Given** user has opened the command template editor
 **And** user has modified one or more fields (name, template, prompt, agent, enabled status)
@@ -68,10 +52,6 @@ The command template editor MUST warn users before discarding unsaved changes to
 **Then** NO confirmation dialog MUST be shown
 **And** modal MUST close immediately
 
----
-
-## ADDED Requirements
-
 ### Requirement: Provide comfortable input areas for template editing
 
 The command template editor MUST use vertical layout (label/description above, input below) for multi-line text fields to maximize input area width and usability.
@@ -112,20 +92,3 @@ The command template editor MUST use vertical layout (label/description above, i
 
 ---
 
-## Implementation Notes
-
-- Change tracking should be simple (boolean flag), not deep equality checking
-- Confirmation dialog should use Obsidian's standard modal patterns for consistency
-- Vertical layout implemented via CSS class applied to Setting elements
-- Target fields for vertical layout: Command template and Default prompt only
-- Textarea sizing: Command template (4 rows), Default prompt (6 rows)
-- CSS should use relative units and avoid theme-specific colors for compatibility
-- All input types must trigger dirty state: text inputs, textareas, and toggles
-
-## Related Changes
-
-None. This is a self-contained UX improvement.
-
-## Backward Compatibility
-
-Fully backward compatible. No data structure or API changes. Purely behavioral enhancement.

@@ -17,6 +17,14 @@ The Command Editor modal (CommandEditorModal) currently has two significant UX i
 
 Users expect modern applications to protect them from accidental data loss. The silent discard behavior violates user expectations and can cause frustration when carefully crafted prompts or command templates are lost. Additionally, the constrained horizontal layout creates unnecessary friction in the editing workflow, particularly for users who write detailed prompts or complex command templates. Vertical layout with full-width textareas is a well-established UX pattern for multi-line text input. These improvements align with Obsidian's focus on user-friendly, considerate UX patterns.
 
+## What Changes
+
+This change will modify:
+- **`src/ui/command-editor.ts`**: Add dirty state tracking and confirmation dialog logic to `CommandEditorModal`
+- **`styles.css`**: Add new CSS class `.ai-terminal-vertical-field` for vertical field layout
+- **`CHANGELOG.md`** and **`README.md`**: Document new UX improvements
+- **`command-template-editor-ux` spec** (new): Document the updated UX requirements for command template editor
+
 ## Proposed Solution
 
 ### 1. Unsaved Changes Warning
