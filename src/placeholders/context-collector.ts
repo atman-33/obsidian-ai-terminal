@@ -8,6 +8,18 @@ export class ContextCollector {
 	constructor(private app: App) {}
 
 	/**
+	 * Normalize path separators for Windows
+	 * Converts forward slashes to backslashes on Windows
+	 */
+	private normalizePath(path: string): string {
+		// Detect Windows path (starts with drive letter)
+		if (/^[A-Za-z]:/.test(path)) {
+			return path.replace(/\//g, "\\");
+		}
+		return path;
+	}
+
+	/**
 	 * Collect context from a file
 	 */
 	collectFileContext(file: TFile): Partial<ExecutionContext> {
@@ -46,7 +58,8 @@ export class ContextCollector {
 		// Use getBasePath + relative path for reliable filesystem path
 		if ('getBasePath' in adapter && typeof adapter.getBasePath === 'function') {
 			const basePath = adapter.getBasePath();
-			return basePath + "/" + file.path;
+			const fullPath = basePath + "/" + file.path;
+			return this.normalizePath(fullPath);
 		}
 		
 		// Fallback: check if getFilePath exists and convert file:// URI to path
@@ -71,7 +84,8 @@ export class ContextCollector {
 		const adapter = this.app.vault.adapter;
 		
 		if ('getBasePath' in adapter && typeof adapter.getBasePath === 'function') {
-			return adapter.getBasePath();
+			const basePath = adapter.getBasePath();
+			return this.normalizePath(basePath);
 		}
 		
 		return "";
@@ -82,8 +96,10 @@ export class ContextCollector {
 	 */
 	getDirectoryPath(file: TFile): string {
 		const fullPath = this.getFilePath(file);
+		// After normalization, paths use backslash on Windows, forward slash on Unix
 		const lastSlash = Math.max(fullPath.lastIndexOf("/"), fullPath.lastIndexOf("\\"));
-		return lastSlash > 0 ? fullPath.substring(0, lastSlash) : fullPath;
+		const dirPath = lastSlash > 0 ? fullPath.substring(0, lastSlash) : fullPath;
+		return this.normalizePath(dirPath);
 	}
 
 	/**

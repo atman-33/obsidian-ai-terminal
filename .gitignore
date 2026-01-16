@@ -22,7 +22,9 @@ data.json
 .DS_Store
 
 .tmp/
-.claude/
+.claude/skills/*
+!.claude/skills/obsidian-plugin-deploy/
+!.claude/skills/obsidian-plugin-release/
 .github/agents/
 .github/instructions/
 .github/prompts/

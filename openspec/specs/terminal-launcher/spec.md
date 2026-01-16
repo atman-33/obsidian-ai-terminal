@@ -38,19 +38,27 @@ The plugin MUST handle failures when launching terminals and provide user-friend
 
 ### Requirement: Set working directory for terminal session
 
-The plugin MUST set the working directory for launched terminal sessions based on execution context.
+The plugin MUST always set the working directory for launched terminal sessions to the vault root directory, regardless of execution context.
 
 #### Scenario: Launch from file context
 
-**Given** user executes command from a file in the file explorer
-**When** terminal is launched
-**Then** the working directory should be set to the file's parent directory
+**Given** user executes command from a file in the file explorer  
+**When** terminal is launched  
+**Then** the working directory should be set to the vault root directory  
+**And** file placeholders (`<path>`, `<dir>`, `<file>`) should still resolve to the file's actual paths
 
 #### Scenario: Launch without file context
 
-**Given** user executes command from command palette without active file
-**When** terminal is launched
+**Given** user executes command from command palette without active file  
+**When** terminal is launched  
 **Then** the working directory should be set to the vault root directory
+
+#### Scenario: Working directory consistency
+
+**Given** multiple terminal launches in the same vault  
+**When** terminals are launched from different file contexts  
+**Then** all terminals should have the same working directory (vault root)  
+**And** file-specific paths should be passed via command placeholders, not via working directory
 
 ### Requirement: Support detached terminal processes
 
