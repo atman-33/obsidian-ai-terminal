@@ -8,15 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-01-16
 
 ### Added
-- TODO: List new features and capabilities
-
-### Changed
-- TODO: List changes to existing functionality
-
-### Fixed
-- TODO: List bug fixes
+- Customizable command templates with dynamic placeholder support
+- Context-aware execution from command palette, file context menu, and editor context menu
+- Windows Terminal launcher with PowerShell support
+- Placeholder system supporting file paths, vault root, selection, and custom prompts
+- Base64 encoding for secure command execution
+- Settings UI for managing command templates
+- Default templates for GitHub Copilot CLI and OpenCode integration
+- Command template editor with validation
+- Support for `<file>`, `<path>`, `<relative-path>`, `<dir>`, `<vault>`, `<selection>`, `<prompt>`, `<agent>` placeholders
 
 ### Security
-- TODO: List security improvements (if any)
+- PowerShell command injection prevention via Base64 encoding
+- Secure placeholder value sanitization
+- Shell argument escaping for file paths
 
 [1.0.0]: https://github.com/atman-33/obsidian-ai-terminal/releases/tag/1.0.0
