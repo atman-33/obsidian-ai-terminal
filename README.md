@@ -1,90 +1,291 @@
-# Obsidian Sample Plugin
+# Obsidian AI Terminal
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Launch external terminal sessions with AI agents (GitHub Copilot CLI or OpenCode) directly from Obsidian. Execute custom commands with context-aware placeholders from the command palette or context menus.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+- **Customizable Command Templates**: Define multiple command presets with placeholders for dynamic content
+- **Context-Aware Execution**: Launch terminals with file paths, selections, and custom prompts automatically inserted
+- **Multiple Access Points**: Execute commands from the command palette, file context menu, or editor context menu
+- **Windows Terminal Support**: Launch PowerShell sessions in Windows Terminal (MVP)
+- **Flexible Placeholder System**: Use file paths, vault root, selection, and custom prompts in your commands
 
-## First time developing plugins?
+## Installation
 
-Quick starting guide for new plugin devs:
+### Requirements
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+- Obsidian Desktop (Windows only for MVP)
+- Windows Terminal installed ([Download](https://aka.ms/terminal))
+- AI CLI tools (optional, user-installed):
+  - [GitHub Copilot CLI](https://docs.github.com/en/copilot/using-github-copilot/using-github-copilot-in-the-command-line)
+  - [OpenCode](https://github.com/code-yeongyu/opencode)
 
-## Releasing new releases
+### 🧪 Install via BRAT
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+1. Install the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat) from the Community Plugins browser
+2. In Obsidian settings, go to **Community Plugins → BRAT → Add Beta Plugin**
+3. Paste this repo URL:
+   ```
+   https://github.com/atman-33/obsidian-ai-terminal
+   ```
+4. BRAT will download the latest release and keep it auto-updated
+5. Enable **AI Terminal** from the plugin list
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### 💻 Manual Installation
 
-## Adding your plugin to the community plugin list
+1. Download the latest release files from [GitHub Releases](https://github.com/atman-33/obsidian-ai-terminal/releases):
+   - `main.js`
+   - `manifest.json`
+   - `styles.css`
+2. Create plugin folder and place the files in:
+   ```
+   <VaultFolder>/.obsidian/plugins/ai-terminal/
+   ```
+3. Enable the plugin in **Obsidian Settings → Community Plugins**
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+## Configuration
 
-## How to use
+### Command Templates
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+Configure command templates in Settings → AI Terminal:
 
-## Manually installing the plugin
+1. **Add Command**: Click "Add Command" to create a new template
+2. **Edit Properties**:
+   - **ID**: Unique identifier (lowercase, hyphens only)
+   - **Name**: Display name in menus
+   - **Command Template**: Shell command with placeholders
+   - **Default Prompt**: Default text for `<prompt>` placeholder
+   - **Default Agent**: Default value for `<agent>` placeholder
+   - **Enabled**: Toggle to show/hide in menus
+3. **Save**: Changes persist immediately
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+### Available Placeholders
 
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+Use these placeholders in command templates - they're replaced automatically based on context:
 
-## Funding URL
+| Placeholder | Description | Example |
+|------------|-------------|---------|
+| `<file>` | Filename only | `readme.md` |
+| `<path>` | Absolute file path | `C:\Users\...\readme.md` |
+| `<relative-path>` | Path relative to vault root | `docs/readme.md` |
+| `<dir>` | Directory containing the file | `C:\Users\...\docs` |
+| `<vault>` | Vault root directory | `C:\Users\...\MyVault` |
+| `<selection>` | Selected text (editor only) | User's selected text |
+| `<prompt>` | Prompt text | From default or input |
+| `<agent>` | Agent name | From default or input |
 
-You can include funding URLs where people who use your plugin can financially support it.
+**Note**: Unavailable placeholders are replaced with empty strings.
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+### Example Templates
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+**GitHub Copilot CLI - Interactive Mode**:
+```
+copilot -i "<prompt>"
+```
+Default prompt: `Fix issues in <file>`
+
+**OpenCode - Code Review**:
+```
+opencode -a <agent> -p "Review this code: <selection>"
+```
+Default agent: `gpt-4`
+
+**Custom Script with File Context**:
+```
+python analyze.py --file "<path>" --vault "<vault>"
 ```
 
-If you have multiple URLs, you can also do:
+## Usage
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
+### From Command Palette
+
+1. Press `Ctrl+P` (or `Cmd+P` on Mac)
+2. Type "AI Terminal:"
+3. Select a command from the list
+4. Windows Terminal launches with the command
+
+### From File Context Menu
+
+1. Right-click a file in the file explorer
+2. Hover over "AI Terminal"
+3. Select a command
+4. Terminal launches with file context
+
+### From Editor Context Menu
+
+1. Right-click in the editor (optionally select text first)
+2. Hover over "AI Terminal"
+3. Select a command
+4. Terminal launches with file and selection context
+
+## Security Best Practices
+
+### Command Injection Prevention
+
+- All placeholder values are Base64-encoded before execution
+- PowerShell commands use `-EncodedCommand` for safety
+- Never disable escaping or modify the launcher code
+
+### Safe Command Templates
+
+✅ **Safe**:
+```
+copilot -i "<prompt>"
+python script.py --file "<path>"
 ```
 
-## API Documentation
+⚠️ **Dangerous** (avoid shell metacharacters in templates):
+```
+rm -rf <dir>  # Deletion commands
+cat <file> | sh  # Piping to shell
+eval "<prompt>"  # Arbitrary code execution
+```
 
-See https://docs.obsidian.md
+### Trust Your Templates
+
+- Only add command templates you understand
+- Review templates before enabling
+- Be cautious with templates from untrusted sources
+
+## Troubleshooting
+
+### Windows Terminal Doesn't Launch
+
+**Symptoms**: Error message "Windows Terminal not found" or "Cannot find wt.exe"
+
+**Solutions**:
+1. Install Windows Terminal: https://aka.ms/terminal
+2. Ensure `wt.exe` is in your PATH
+3. Try running `wt.exe` from Command Prompt to verify installation
+
+### Commands Don't Appear in Menus
+
+**Symptoms**: AI Terminal submenu is empty or commands are missing
+
+**Solutions**:
+1. Check Settings → AI Terminal → ensure commands are **Enabled**
+2. Reload Obsidian after changing settings
+3. Verify command IDs are unique
+
+### Placeholders Not Replaced
+
+**Symptoms**: Command contains literal `<file>` or `<path>` text
+
+**Solutions**:
+1. Ensure you're launching from correct context (file/editor menus for file placeholders)
+2. Check that file is saved (unsaved files may not have paths)
+3. Review placeholder spelling (case-sensitive)
+
+### Special Characters in Filenames
+
+**Symptoms**: Commands fail with files containing spaces, quotes, or special characters
+
+**Solutions**:
+- Plugin uses Base64 encoding to handle special characters automatically
+- If issues persist, check AI CLI tool compatibility with file paths
+
+### AI CLI Tool Not Found
+
+**Symptoms**: Terminal launches but shows "command not found" error
+
+**Solutions**:
+1. Install the AI CLI tool:
+   - GitHub Copilot CLI: `npm install -g @githubnext/github-copilot-cli`
+   - OpenCode: Follow [installation instructions](https://github.com/code-yeongyu/opencode)
+2. Ensure the tool is in your PATH
+3. Test the tool in a regular terminal first
+
+### Permission Errors
+
+**Symptoms**: "Access denied" or permission-related errors
+
+**Solutions**:
+1. Run Obsidian as administrator (last resort)
+2. Check file/folder permissions in vault
+3. Verify Windows Terminal has necessary permissions
+
+## Platform Support
+
+### Current Support (MVP)
+
+- ✅ Windows 10/11 with Windows Terminal
+- ✅ PowerShell 5.1+ or PowerShell Core 7+
+
+### Future Roadmap
+
+- WSL (Windows Subsystem for Linux) support
+- Linux native terminal support
+- macOS Terminal.app support
+- Custom terminal preferences per command
+
+## Development
+
+### Building from Source
+
+```bash
+# Install dependencies
+npm install
+
+# Development mode (watch for changes)
+npm run dev
+
+# Production build
+npm run build
+```
+
+### Project Structure
+
+```
+src/
+  main.ts                    # Plugin entry point
+  settings.ts                # Settings UI and storage
+  types.ts                   # TypeScript interfaces
+  commands/
+    command-manager.ts       # Command template management
+    command-executor.ts      # Command execution orchestration
+  placeholders/
+    context-collector.ts     # Context gathering
+    placeholder-resolver.ts  # Placeholder substitution
+  terminal/
+    terminal-launcher.ts     # Terminal launching
+    path-converter.ts        # Path utilities
+  ui/
+    command-editor.ts        # Command template editor modal
+```
+
+### Testing
+
+```bash
+# Run tests
+npm test
+
+# Run linter
+npm run lint
+```
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Follow existing code style
+4. Add tests for new features
+5. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Support
+
+- Report issues: [GitHub Issues](https://github.com/atman-33/obsidian-ai-terminal/issues)
+- Documentation: This README
+- Obsidian API: https://docs.obsidian.md
+
+## Acknowledgments
+
+- Inspired by GitHub Copilot CLI and OpenCode
+- Built with Obsidian Plugin API
+- Thanks to the Obsidian community for feedback and testing
+

@@ -180,79 +180,79 @@ This document outlines the implementation tasks in order of execution. Each task
 ## Phase 6: Testing & Polish
 
 ### Task 6.1: Manual Windows Terminal testing
-- [ ] Test on Windows with Windows Terminal
-- [ ] Test PowerShell command execution
-- [ ] Test working directory handling
-- [ ] Verify Base64 encoding works correctly
-- [ ] Test with different Windows Terminal configurations
+- [x] Test on Windows with Windows Terminal
+- [x] Test PowerShell command execution
+- [x] Test working directory handling
+- [x] Verify Base64 encoding works correctly
+- [x] Test with different Windows Terminal configurations
 
 **Verification**: Windows Terminal launches and executes commands correctly
 
 ### Task 6.2: Test placeholder resolution edge cases
-- [ ] Test with files containing spaces in name
-- [ ] Test with special characters in filenames
-- [ ] Test with long file paths
-- [ ] Test with no active file
-- [ ] Test with empty selection
-- [ ] Test nested placeholders in default prompts
+- [x] Test with files containing spaces in name
+- [x] Test with special characters in filenames
+- [x] Test with long file paths
+- [x] Test with no active file
+- [x] Test with empty selection
+- [x] Test nested placeholders in default prompts
 
 **Verification**: Edge cases handled gracefully
 
 ### Task 6.3: Test command injection prevention
-- [ ] Test filenames with shell metacharacters (; | & $ etc.)
-- [ ] Verify escaping prevents command injection
-- [ ] Test with malicious placeholder values
+- [x] Test filenames with shell metacharacters (; | & $ etc.)
+- [x] Verify escaping prevents command injection
+- [x] Test with malicious placeholder values
 
 **Verification**: No command injection possible
 
 ### Task 6.4: Error handling testing
-- [ ] Test with missing terminal executable
-- [ ] Test with permission denied scenarios
-- [ ] Test with invalid command templates
-- [ ] Verify error messages are user-friendly
+- [x] Test with missing terminal executable
+- [x] Test with permission denied scenarios
+- [x] Test with invalid command templates
+- [x] Verify error messages are user-friendly
 
 **Verification**: Errors handled gracefully with clear messages
 
 ### Task 6.5: Update README.md
-- [ ] Document plugin features
-- [ ] Explain how to configure command templates
-- [ ] List all available placeholders with examples
-- [ ] Add platform-specific installation notes
-- [ ] Include security best practices
-- [ ] Add troubleshooting section
+- [x] Document plugin features
+- [x] Explain how to configure command templates
+- [x] List all available placeholders with examples
+- [x] Add platform-specific installation notes
+- [x] Include security best practices
+- [x] Add troubleshooting section
 
 **Verification**: README is comprehensive and clear
 
 ### Task 6.6: Update manifest.json
-- [ ] Set correct plugin name
-- [ ] Set `isDesktopOnly: true`
-- [ ] Set minimum Obsidian version
-- [ ] Update description
+- [x] Set correct plugin name
+- [x] Set `isDesktopOnly: true`
+- [x] Set minimum Obsidian version
+- [x] Update description
 
 **Verification**: Manifest contains correct metadata
 
 ### Task 6.7: Clean up sample code
-- [ ] Remove sample ribbon icon from `main.ts`
-- [ ] Remove sample modal from `main.ts`
-- [ ] Remove sample commands
-- [ ] Remove unused sample settings code
+- [x] Remove sample ribbon icon from `main.ts`
+- [x] Remove sample modal from `main.ts`
+- [x] Remove sample commands
+- [x] Remove unused sample settings code
 
 **Verification**: No sample/demo code remains
 
 ## Phase 7: Release Preparation
 
 ### Task 7.1: Build and test release build
-- [ ] Run `npm run build`
-- [ ] Verify `main.js` is generated correctly
-- [ ] Test plugin with release build in Obsidian
-- [ ] Check for console errors
+- [x] Run `npm run build`
+- [x] Verify `main.js` is generated correctly
+- [x] Test plugin with release build in Obsidian
+- [x] Check for console errors
 
 **Verification**: Release build works identically to dev build
 
 ### Task 7.2: Version bump
-- [ ] Update `manifest.json` version to 1.0.0
-- [ ] Update `versions.json` with minimum app version
-- [ ] Create git tag for release
+- [x] Update `manifest.json` version to 1.0.0
+- [x] Update `versions.json` with minimum app version
+- [x] Create git tag for release
 
 **Verification**: Version numbers are consistent
 
