@@ -1,99 +1,120 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import {Plugin, TFile, Menu, Editor, MarkdownView} from 'obsidian';
+import {DEFAULT_SETTINGS, AITerminalSettingTab} from "./settings";
+import {AITerminalSettings} from "./types";
+import {CommandManager} from "./commands/command-manager";
+import {CommandExecutor} from "./commands/command-executor";
 
-// Remember to rename these classes and interfaces!
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class AITerminalPlugin extends Plugin {
+	settings: AITerminalSettings;
+	private commandManager: CommandManager;
+	private commandExecutor: CommandExecutor;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+		// Initialize managers
+		this.commandManager = new CommandManager(this);
+		this.commandExecutor = new CommandExecutor(this);
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
+		// Register settings tab
+		this.addSettingTab(new AITerminalSettingTab(this.app, this));
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+		// Register commands in command palette
+		this.registerCommands();
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
+		// Register context menu handlers
+		this.registerContextMenus();
 	}
 
 	onunload() {
+		// Cleanup handled automatically by Obsidian
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<AITerminalSettings>);
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
+		// Re-register commands when settings change
+		this.reregisterCommands();
 	}
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
+	/**
+	 * Register all enabled commands in command palette
+	 */
+	private registerCommands(): void {
+		const enabledCommands = this.commandManager.getEnabledCommands();
+
+		enabledCommands.forEach(cmd => {
+			this.addCommand({
+				id: `ai-terminal-${cmd.id}`,
+				name: `AI Terminal: ${cmd.name}`,
+				callback: () => {
+					const activeFile = this.app.workspace.getActiveFile();
+					void this.commandExecutor.executeCommand(cmd, {
+						file: activeFile ?? undefined,
+						vault: this.app.vault
+					});
+				}
+			});
+		});
 	}
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+	/**
+	 * Re-register commands (called when settings change)
+	 */
+	private reregisterCommands(): void {
+		// Obsidian doesn't provide a way to unregister commands,
+		// so we rely on plugin reload for now
+		// TODO: Find a better way to handle dynamic command registration
+	}
+
+	/**
+	 * Register context menu handlers
+	 */
+	private registerContextMenus(): void {
+		// File context menu (right-click on file in file explorer)
+		this.registerEvent(
+			this.app.workspace.on("file-menu", (menu: Menu, file: TFile) => {
+				this.addCommandsToMenu(menu, file, undefined);
+			})
+		);
+
+		// Editor context menu (right-click in editor)
+		this.registerEvent(
+			this.app.workspace.on("editor-menu", (menu: Menu, editor: Editor, view: MarkdownView) => {
+				const selection = editor.getSelection();
+				this.addCommandsToMenu(menu, view.file, selection);
+			})
+		);
+	}
+
+	/**
+	 * Add command templates to a context menu
+	 */
+	private addCommandsToMenu(menu: Menu, file: TFile | null, selection?: string): void {
+		const enabledCommands = this.commandManager.getEnabledCommands();
+
+		if (enabledCommands.length === 0) return;
+
+		// Add separator before our commands
+		menu.addSeparator();
+
+		// Create submenu
+		enabledCommands.forEach(cmd => {
+			menu.addItem(item => {
+				item
+					.setTitle(`AI Terminal: ${cmd.name}`)
+					.setIcon("terminal")
+					.onClick(() => {
+						void this.commandExecutor.executeCommand(cmd, {
+							file: file ?? undefined,
+							selection: selection || undefined,
+							vault: this.app.vault
+						});
+					});
+			});
+		});
 	}
 }
