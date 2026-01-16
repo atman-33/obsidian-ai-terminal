@@ -26,3 +26,4 @@ data.json
 .github/agents/
 .github/instructions/
 .github/prompts/
+.serena/

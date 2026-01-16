@@ -1,5 +1,16 @@
 # Proposal: Add AI Terminal Launcher
 
+## Why
+
+Users need to invoke AI CLI tools while working in Obsidian, but switching to external terminals and manually managing paths and prompts breaks flow and wastes time. This proposal makes those workflows accessible directly from Obsidian with context-aware commands.
+
+## What Changes
+
+- Add a command template system with placeholder substitution for file, selection, prompt, and agent context.
+- Expose commands via the command palette and file/editor context menus.
+- Launch external terminal sessions (Windows Terminal MVP) with safe command encoding.
+- Introduce new capabilities: terminal launcher, command templates, placeholder system, and context menu integration.
+
 ## Overview
 
 Add comprehensive AI terminal launcher functionality to the Obsidian plugin, enabling users to launch external terminal sessions with AI agents (GitHub Copilot CLI or OpenCode) directly from Obsidian with customizable command templates and context-aware placeholders.
