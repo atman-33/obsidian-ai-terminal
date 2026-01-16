@@ -213,11 +213,9 @@ export class PlaceholderResolver {
 
 	/**
 	 * Get working directory for terminal launch
+	 * Always returns vault root for consistent access to all vault files
 	 */
 	getWorkingDirectory(context: ExecutionContext): string {
-		if (context.file) {
-			return this.contextCollector.getDirectoryPath(context.file);
-		}
 		return this.contextCollector.getVaultPath();
 	}
 }

@@ -260,4 +260,25 @@ describe("PlaceholderResolver", () => {
 			expect(result).toContain("you're");
 		});
 	});
+
+	describe("getWorkingDirectory", () => {
+		it("should always return vault root when file context is present", () => {
+			const context: ExecutionContext = {
+				vault: mockVault,
+				file: mockFile
+			};
+			const result = resolver.getWorkingDirectory(context);
+			expect(result).toBe("C:\\obsidian\\test");
+			expect(mockContextCollector.getVaultPath).toHaveBeenCalled();
+		});
+
+		it("should return vault root when no file context is present", () => {
+			const context: ExecutionContext = {
+				vault: mockVault
+			};
+			const result = resolver.getWorkingDirectory(context);
+			expect(result).toBe("C:\\obsidian\\test");
+			expect(mockContextCollector.getVaultPath).toHaveBeenCalled();
+		});
+	});
 });

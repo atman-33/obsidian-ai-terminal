@@ -76,6 +76,16 @@ Use these placeholders in command templates - they're replaced automatically bas
 
 **Note**: Unavailable placeholders are replaced with empty strings.
 
+### Working Directory
+
+When launching a terminal, the working directory is always set to the **vault root**, regardless of whether the command is executed from the command palette, file context menu, or editor. This ensures consistent access to all files and directories within your vault using relative paths.
+
+- **File paths** are still passed as placeholders (`<path>`, `<dir>`, etc.) so AI agents can identify the target file
+- **Directory of the file** remains accessible via the `<dir>` placeholder
+- **Use relative paths** from vault root in your commands for multi-file operations
+
+**Example**: If your vault is at `C:\Users\john\MyVault` and you execute a command on `docs/readme.md`, the terminal working directory will be `C:\Users\john\MyVault` (not `C:\Users\john\MyVault\docs`).
+
 ### Example Templates
 
 **GitHub Copilot CLI - Interactive Mode**:
