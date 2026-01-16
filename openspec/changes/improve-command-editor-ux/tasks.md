@@ -2,7 +2,7 @@
 
 ## Implementation Order
 
-1. **Add vertical layout CSS** ⚡ Quick Win
+1. [x] **Add vertical layout CSS** ⚡ Quick Win
    - Create CSS rules in `styles.css` for `.ai-terminal-vertical-field` class
    - Rules:
      - Flex column layout
@@ -11,7 +11,7 @@
    - Manual test: verify CSS compiles and loads
    - Estimate: 10 minutes
 
-2. **Apply vertical layout and increase textarea sizes**
+2. [x] **Apply vertical layout and increase textarea sizes**
    - Modify `CommandEditorModal.onOpen()` in `src/ui/command-editor.ts`
    - Command template field:
      - Add `templateSetting.settingEl.addClass('ai-terminal-vertical-field')`
@@ -23,14 +23,14 @@
    - Visual test: check on different window sizes and themes
    - Estimate: 15 minutes
 
-3. **Add dirty state tracking**
+3. [x] **Add dirty state tracking**
    - Add private field `isDirty: boolean = false` to `CommandEditorModal`
    - Set `isDirty = true` in all field `onChange` handlers
    - Reset `isDirty = false` after successful save
    - Unit test: verify dirty state changes correctly
    - Estimate: 15 minutes
 
-4. **Implement unsaved changes confirmation dialog**
+4. [x] **Implement unsaved changes confirmation dialog**
    - Create helper method `confirmDiscardChanges(): boolean` that shows Obsidian modal
    - Update close button handler to check `isDirty` and call confirmation
    - Override modal `onClose()` to check `isDirty` (handles × button)
@@ -43,31 +43,31 @@
      - Save successfully → no confirmation on close
    - Estimate: 30 minutes
 
-5. **Update documentation**
+5. [x] **Update documentation**
    - Update CHANGELOG.md with new feature
    - Update README.md if user-facing behavior changes significantly
    - Estimate: 10 minutes
 
 ## Validation
 
-- [ ] All unit tests pass
-- [ ] Manual testing checklist completed:
-  - [ ] Open editor, make no changes, click Cancel → closes immediately
-  - [ ] Open editor, make no changes, click × → closes immediately
-  - [ ] Open editor, edit field, click Cancel → confirmation shown
-  - [ ] Open editor, edit field, click × → confirmation shown
-  - [ ] Confirmation: "Keep Editing" → modal stays open, changes preserved
-  - [ ] Confirmation: "Close Anyway" → modal closes, changes discarded
-  - [ ] Make changes and save → closes without confirmation
-  - [ ] Command template is in vertical layout with 4 rows
-  - [ ] Default prompt is in vertical layout with 6 rows
-  - [ ] Both textareas are full-width (~100% of modal width)
-  - [ ] Other fields (ID, Name, Default agent, Enabled) remain horizontal
-  - [ ] Layout works on narrow window widths
-  - [ ] Layout works on wide window widths
-  - [ ] Test on light and dark themes
-- [ ] No console errors or warnings
-- [ ] Works on all supported platforms (Windows, macOS, Linux)
+- [x] All unit tests pass
+- [x] Manual testing checklist completed:
+  - [x] Open editor, make no changes, click Cancel → closes immediately
+  - [x] Open editor, make no changes, click × → closes immediately
+  - [x] Open editor, edit field, click Cancel → confirmation shown
+  - [x] Open editor, edit field, click × → confirmation shown
+  - [x] Confirmation: "Keep Editing" → modal stays open, changes preserved
+  - [x] Confirmation: "Close Anyway" → modal closes, changes discarded
+  - [x] Make changes and save → closes without confirmation
+  - [x] Command template is in vertical layout with 4 rows
+  - [x] Default prompt is in vertical layout with 6 rows
+  - [x] Both textareas are full-width (~100% of modal width)
+  - [x] Other fields (ID, Name, Default agent, Enabled) remain horizontal
+  - [x] Layout works on narrow window widths
+  - [x] Layout works on wide window widths
+  - [x] Test on light and dark themes
+- [x] No console errors or warnings
+- [x] Works on all supported platforms (Windows, macOS, Linux)
 
 ## Dependencies
 

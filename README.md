@@ -9,6 +9,7 @@ Launch external terminal sessions with AI agents (GitHub Copilot CLI or OpenCode
 - **Multiple Access Points**: Execute commands from the command palette, file context menu, or editor context menu
 - **Windows Terminal Support**: Launch PowerShell sessions in Windows Terminal (MVP)
 - **Flexible Placeholder System**: Use file paths, vault root, selection, and custom prompts in your commands
+- **Command Editor UX**: Full-width multi-line fields and unsaved changes warning
 
 ## Installation
 

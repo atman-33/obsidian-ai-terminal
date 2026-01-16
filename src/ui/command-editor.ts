@@ -9,6 +9,8 @@ export class CommandEditorModal extends Modal {
 	private isEdit: boolean;
 	private originalId?: string;
 	private onSave: (command: CommandTemplate) => Promise<void>;
+	private isDirty = false;
+	private skipConfirmation = false;
 
 	constructor(
 		app: App,
@@ -44,6 +46,7 @@ export class CommandEditorModal extends Modal {
 					.setPlaceholder("My-command-id")
 					.setValue(this.command.id || "")
 					.onChange(value => {
+						this.isDirty = true;
 						this.command.id = value.toLowerCase().replace(/[^a-z0-9-]/g, "-");
 					});
 				
@@ -60,11 +63,12 @@ export class CommandEditorModal extends Modal {
 				.setPlaceholder("My command")
 				.setValue(this.command.name || "")
 				.onChange(value => {
+					this.isDirty = true;
 					this.command.name = value;
 				}));
 
 		// Template field
-		new Setting(contentEl)
+		const templateSetting = new Setting(contentEl)
 			.setName("Command template")
 			.setDesc("Command with placeholders (e.g., copilot -i <prompt>)")
 			.addTextArea(text => {
@@ -72,14 +76,16 @@ export class CommandEditorModal extends Modal {
 					.setPlaceholder('copilot -i <prompt>')
 					.setValue(this.command.template || "")
 					.onChange(value => {
+						this.isDirty = true;
 						this.command.template = value;
 					});
-				text.inputEl.rows = 3;
+				text.inputEl.rows = 4;
 				text.inputEl.setCssProps({ width: "100%" });
 			});
+		templateSetting.settingEl.addClass("ai-terminal-vertical-field");
 
 		// Default Prompt field
-		new Setting(contentEl)
+		const promptSetting = new Setting(contentEl)
 			.setName("Default prompt (optional)")
 			.setDesc("Default value for <prompt> placeholder")
 			.addTextArea(text => {
@@ -87,11 +93,13 @@ export class CommandEditorModal extends Modal {
 					.setPlaceholder("Fix issues in <file>")
 					.setValue(this.command.defaultPrompt || "")
 					.onChange(value => {
+						this.isDirty = true;
 						this.command.defaultPrompt = value;
 					});
-				text.inputEl.rows = 2;
+				text.inputEl.rows = 6;
 				text.inputEl.setCssProps({ width: "100%" });
 			});
+		promptSetting.settingEl.addClass("ai-terminal-vertical-field");
 
 		// Default Agent field
 		new Setting(contentEl)
@@ -101,6 +109,7 @@ export class CommandEditorModal extends Modal {
 				.setPlaceholder("Agent name")
 				.setValue(this.command.defaultAgent || "")
 				.onChange(value => {
+					this.isDirty = true;
 					this.command.defaultAgent = value;
 				}));
 
@@ -111,6 +120,7 @@ export class CommandEditorModal extends Modal {
 			.addToggle(toggle => toggle
 				.setValue(this.command.enabled ?? true)
 				.onChange(value => {
+					this.isDirty = true;
 					this.command.enabled = value;
 				}));
 
@@ -129,7 +139,9 @@ export class CommandEditorModal extends Modal {
 		const buttonContainer = contentEl.createDiv({cls: "modal-button-container"});
 
 		const cancelButton = buttonContainer.createEl("button", {text: "Cancel"});
-		cancelButton.addEventListener("click", () => this.close());
+		cancelButton.addEventListener("click", () => {
+			void this.handleCloseRequest();
+		});
 
 		const saveButton = buttonContainer.createEl("button", {
 			text: "Save",
@@ -137,6 +149,43 @@ export class CommandEditorModal extends Modal {
 		});
 		saveButton.addEventListener("click", () => {
 			void this.save();
+		});
+	}
+
+	private shouldConfirmDiscard(): boolean {
+		return this.isDirty && !this.skipConfirmation;
+	}
+
+	private async handleCloseRequest(reopenOnCancel = false): Promise<void> {
+		if (!this.shouldConfirmDiscard()) {
+			this.skipConfirmation = true;
+			this.close();
+			return;
+		}
+
+		const shouldDiscard = await this.confirmDiscardChanges();
+		if (shouldDiscard) {
+			this.skipConfirmation = true;
+			this.close();
+			return;
+		}
+
+		if (reopenOnCancel) {
+			this.open();
+		}
+	}
+
+	private async confirmDiscardChanges(): Promise<boolean> {
+		return await new Promise(resolve => {
+			const modal = new ConfirmationModal(
+				this.app,
+				"Unsaved changes",
+				"You have unsaved changes. Are you sure you want to close without saving?",
+				"Close anyway",
+				() => resolve(true),
+				() => resolve(false)
+			);
+			modal.open();
 		});
 	}
 
@@ -150,6 +199,8 @@ export class CommandEditorModal extends Modal {
 		try {
 			await this.onSave(this.command as CommandTemplate);
 			new Notice(`Command template ${this.isEdit ? "updated" : "created"} successfully`);
+			this.isDirty = false;
+			this.skipConfirmation = true;
 			this.close();
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
@@ -158,7 +209,71 @@ export class CommandEditorModal extends Modal {
 	}
 
 	onClose() {
+		if (this.shouldConfirmDiscard()) {
+			void this.handleCloseRequest(true);
+			return;
+		}
+
 		const {contentEl} = this;
 		contentEl.empty();
+	}
+}
+
+class ConfirmationModal extends Modal {
+	private titleText: string;
+	private message: string;
+	private confirmText: string;
+	private onConfirm: () => void;
+	private onCancel: () => void;
+	private didResolve = false;
+
+	constructor(
+		app: App,
+		titleText: string,
+		message: string,
+		confirmText: string,
+		onConfirm: () => void,
+		onCancel: () => void
+	) {
+		super(app);
+		this.titleText = titleText;
+		this.message = message;
+		this.confirmText = confirmText;
+		this.onConfirm = onConfirm;
+		this.onCancel = onCancel;
+	}
+
+	onOpen() {
+		const {contentEl} = this;
+		contentEl.empty();
+		contentEl.createEl("h2", {text: this.titleText});
+		contentEl.createEl("p", {text: this.message});
+
+		const buttonContainer = contentEl.createDiv({cls: "modal-button-container"});
+		const cancelButton = buttonContainer.createEl("button", {text: "Keep editing"});
+		cancelButton.addEventListener("click", () => {
+			this.didResolve = true;
+			this.onCancel();
+			this.close();
+		});
+
+		const confirmButton = buttonContainer.createEl("button", {
+			text: this.confirmText,
+			cls: "mod-warning"
+		});
+		confirmButton.addEventListener("click", () => {
+			this.didResolve = true;
+			this.onConfirm();
+			this.close();
+		});
+
+		cancelButton.focus();
+	}
+
+	onClose() {
+		if (!this.didResolve) {
+			this.onCancel();
+		}
+		this.contentEl.empty();
 	}
 }

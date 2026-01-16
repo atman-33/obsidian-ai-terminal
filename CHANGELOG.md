@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - This enables easier access to all vault files using relative paths
   - File directory remains accessible via the `<dir>` placeholder
   - Existing workflows that relied on file directory as working directory may need adjustment
+- Command editor now warns about unsaved changes and uses a vertical layout for multi-line fields
 
 ## [1.0.0] - 2026-01-16
 
