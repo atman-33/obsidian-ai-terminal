@@ -1,8 +1,8 @@
 export const MAX_SELECTION_PREVIEW = 200;
 
-export function truncateSelection(selection: string): string {
-	if (selection.length <= MAX_SELECTION_PREVIEW) {
-		return selection;
+export function truncateSelection(selection: string | undefined): string {
+	if (!selection || selection.length <= MAX_SELECTION_PREVIEW) {
+		return selection ?? "";
 	}
 	return `${selection.slice(0, MAX_SELECTION_PREVIEW)}...`;
 }
@@ -16,41 +16,33 @@ export function buildContextDisplay(
 		contextParts.push(`<file:${filePath}>`);
 	}
 
-	if (selection !== undefined) {
-		contextParts.push(`<selection:${truncateSelection(selection)}>`);
+	if (selection !== undefined && selection !== null && selection.length > 0) {
+		const truncated = truncateSelection(selection);
+		contextParts.push(`<selection:${truncated}>`);
 	}
 
+	const displayText = contextParts.join("\n");
+	const promptText = contextParts.join(" ").trim();
+
 	return {
-		displayText: contextParts.join("\n"),
-		promptText: contextParts.join(" ").trim()
+		displayText,
+		promptText
 	};
 }
 
 export function buildDirectPromptCommand(
+	commandTemplate: string,
 	agentName: string,
-	contextPrompt: string,
 	userPrompt: string
 ): { template: string; promptValue: string } {
-	const trimmedPrompt = userPrompt.trim();
-	const hasUserPrompt = trimmedPrompt.length > 0;
-	const hasContext = contextPrompt.length > 0;
-
-	if (hasUserPrompt) {
-		return {
-			template: `${agentName} -i <prompt>`,
-			promptValue: [contextPrompt, trimmedPrompt].filter(Boolean).join(" ")
-		};
-	}
-
-	if (hasContext) {
-		return {
-			template: `${agentName} <prompt>`,
-			promptValue: contextPrompt
-		};
-	}
+	// Use the provided command template, replacing <agent> placeholder if present
+	const template = commandTemplate.replace(/<agent>/g, agentName);
+	
+	// User prompt is used as-is (may contain placeholders like <file>, <selection>)
+	const promptValue = userPrompt.trim();
 
 	return {
-		template: agentName,
-		promptValue: ""
+		template,
+		promptValue
 	};
 }

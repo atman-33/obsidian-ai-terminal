@@ -118,6 +118,7 @@ export default class AITerminalPlugin extends Plugin {
 				.setTitle("AI Terminal: Direct Prompt...")
 				.setIcon("edit")
 				.onClick(() => {
+					menu.hide();
 					this.openDirectPromptModal(file ?? undefined, selection);
 				});
 		});
@@ -135,6 +136,7 @@ export default class AITerminalPlugin extends Plugin {
 					.setTitle(`AI Terminal: ${cmd.name}`)
 					.setIcon("terminal")
 					.onClick(() => {
+						menu.hide();
 						void this.commandExecutor.executeCommand(cmd, {
 							file: file ?? undefined,
 							selection: selection || undefined,

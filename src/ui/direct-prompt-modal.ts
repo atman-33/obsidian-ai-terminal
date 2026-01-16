@@ -8,16 +8,20 @@ import {buildContextDisplay, buildDirectPromptCommand} from "./direct-prompt-uti
 export class DirectPromptModal extends Modal {
 	private commandExecutor: CommandExecutor;
 	private contextCollector: ContextCollector;
+	private commandTemplate = "";
 	private selectedAgentName = "";
 	private promptText = "";
+	private selectedText?: string;
 
 	constructor(
 		app: App,
 		private plugin: AITerminalPlugin,
 		private file?: TFile,
-		private selection?: string
+		selection?: string
 	) {
 		super(app);
+		this.selectedText = selection;
+		this.commandTemplate = plugin.settings.lastUsedDirectPromptCommand ?? "<agent> -i <prompt>";
 		this.commandExecutor = new CommandExecutor(plugin);
 		this.contextCollector = new ContextCollector(app);
 	}
@@ -28,7 +32,22 @@ export class DirectPromptModal extends Modal {
 		contentEl.createEl("h2", {text: "Direct prompt"});
 
 		const enabledAgents = this.getEnabledAgents();
-		this.selectedAgentName = enabledAgents[0]?.name ?? "";
+		this.selectedAgentName = this.plugin.settings.lastUsedDirectPromptAgent ?? enabledAgents[0]?.name ?? "";
+
+		// Command template field
+		const commandSetting = new Setting(contentEl)
+			.setName("Command")
+			.setDesc("Command template with placeholders (<agent>, <prompt>, etc.)")
+			.addText(text => {
+				text
+					.setPlaceholder("opencode --agent <agent> --prompt <prompt>")
+					.setValue(this.commandTemplate)
+					.onChange(value => {
+						this.commandTemplate = value;
+					});
+				text.inputEl.setCssProps({ width: "100%" });
+			});
+		commandSetting.settingEl.addClass("ai-terminal-vertical-field");
 
 		const agentSetting = new Setting(contentEl)
 			.setName("Agent")
@@ -48,21 +67,9 @@ export class DirectPromptModal extends Modal {
 			agentSetting.setDesc("Please configure at least one AI agent in settings.");
 		}
 
-		const filePath = this.file ? this.contextCollector.getFilePath(this.file) : undefined;
-		const contextDisplay = buildContextDisplay(filePath, this.selection);
-		new Setting(contentEl)
-			.setName("Context")
-			.setDesc("Read-only context that will be included with your prompt")
-			.addTextArea(text => {
-				text.setValue(contextDisplay.displayText);
-				text.inputEl.readOnly = true;
-				text.inputEl.rows = 4;
-				text.inputEl.setCssProps({ width: "100%" });
-			});
-
 		const promptSetting = new Setting(contentEl)
 			.setName("Prompt")
-			.setDesc("Enter additional instructions (optional)")
+			.setDesc("Available placeholders: <file>, <path>, <relative-path>, <dir>, <vault>, <selection>")
 			.addTextArea(text => {
 				text
 					.setPlaceholder("Explain the context above...")
@@ -85,7 +92,7 @@ export class DirectPromptModal extends Modal {
 		});
 		executeButton.disabled = enabledAgents.length === 0;
 		executeButton.addEventListener("click", () => {
-			void this.executePrompt(contextDisplay.promptText, enabledAgents);
+			void this.executePrompt(enabledAgents);
 		});
 
 		promptSetting.settingEl.querySelector("textarea")?.focus();
@@ -95,7 +102,7 @@ export class DirectPromptModal extends Modal {
 		return this.plugin.settings.agents.filter(agent => agent.enabled);
 	}
 
-	private async executePrompt(contextPrompt: string, enabledAgents: AgentConfig[]): Promise<void> {
+	private async executePrompt(enabledAgents: AgentConfig[]): Promise<void> {
 		const agent = enabledAgents.find(current => current.name === this.selectedAgentName);
 		if (!agent) {
 			new Notice("Please configure at least one AI agent in settings.");
@@ -103,10 +110,15 @@ export class DirectPromptModal extends Modal {
 		}
 
 		const {template, promptValue} = buildDirectPromptCommand(
+			this.commandTemplate,
 			agent.name,
-			contextPrompt,
 			this.promptText
 		);
+
+		// Save last used values
+		this.plugin.settings.lastUsedDirectPromptCommand = this.commandTemplate;
+		this.plugin.settings.lastUsedDirectPromptAgent = this.selectedAgentName;
+		await this.plugin.saveSettings();
 
 		const directCommand: CommandTemplate = {
 			id: "direct-prompt",
@@ -119,7 +131,7 @@ export class DirectPromptModal extends Modal {
 
 		const success = await this.commandExecutor.executeCommand(directCommand, {
 			file: this.file,
-			selection: this.selection,
+			selection: this.selectedText,
 			prompt: promptValue
 		});
 

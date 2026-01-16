@@ -18,19 +18,19 @@ describe("direct prompt utils", () => {
 	});
 
 	it("builds direct prompt command with user prompt", () => {
-		const result = buildDirectPromptCommand("copilot", "<file:/path>", "Explain this");
+		const result = buildDirectPromptCommand("<agent> -i <prompt>", "copilot", "<file> <selection> explain this");
 		expect(result.template).toBe("copilot -i <prompt>");
-		expect(result.promptValue).toBe("<file:/path> Explain this");
+		expect(result.promptValue).toBe("<file> <selection> explain this");
 	});
 
 	it("builds direct prompt command with context only", () => {
-		const result = buildDirectPromptCommand("opencode", "<file:/path>", "");
+		const result = buildDirectPromptCommand("<agent> <prompt>", "opencode", "<file>");
 		expect(result.template).toBe("opencode <prompt>");
-		expect(result.promptValue).toBe("<file:/path>");
+		expect(result.promptValue).toBe("<file>");
 	});
 
 	it("builds direct prompt command with no prompt or context", () => {
-		const result = buildDirectPromptCommand("opencode", "", "");
+		const result = buildDirectPromptCommand("<agent>", "opencode", "");
 		expect(result.template).toBe("opencode");
 		expect(result.promptValue).toBe("");
 	});

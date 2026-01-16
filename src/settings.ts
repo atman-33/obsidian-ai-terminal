@@ -10,11 +10,11 @@ const SETTINGS_VERSION = 3;
 
 const DEFAULT_AGENTS: AgentConfig[] = [
 	{
-		name: "copilot",
+		name: "Build",
 		enabled: true
 	},
 	{
-		name: "opencode",
+		name: "Agent",
 		enabled: true
 	}
 ];
@@ -25,46 +25,25 @@ export const DEFAULT_SETTINGS: AITerminalSettings = {
 	commands: [
 		{
 			id: "a3d5f891-2c4b-4e9a-b123-456789abcdef",
-			name: "Copilot - Interactive",
-			template: '<agent> -i <prompt>',
+			name: "OpenCode - Fix Issues",
+			template: 'opencode --agent <agent> --prompt <prompt>',
 			defaultPrompt: "Fix issues in <file>",
-			agentName: "copilot",
+			agentName: "Build",
 			enabled: true
 		},
 		{
 			id: "b7e2a3c4-5d6f-4a8b-9c12-34567890efab",
-			name: "Copilot - With Agent",
-			template: '<agent> --agent code-reviewer -i <prompt>',
+			name: "Copilot - Review",
+			template: 'copilot --agent <agent> -i <prompt>',
 			defaultPrompt: "Review <file>",
-			agentName: "copilot",
-			enabled: true
-		},
-		{
-			id: "c1f3e5d7-8a9b-4c2d-a345-678901bcdef0",
-			name: "OpenCode - Interactive",
-			template: '<agent> --agent noctis --prompt <prompt>',
-			defaultPrompt: "Analyze <file>",
-			agentName: "opencode",
-			enabled: true
-		},
-		{
-			id: "d2e4f6a8-9b1c-4d5e-b678-901234cdef56",
-			name: "OpenCode - Simple",
-			template: '<agent> --prompt <prompt>',
-			defaultPrompt: "Help with <file>",
-			agentName: "opencode",
-			enabled: true
-		},
-		{
-			id: "e3f5a7b9-0c2d-4e6f-c789-012345def678",
-			name: "Terminal Only",
-			template: "bash",
-			agentName: "copilot",
+			agentName: "Agent",
 			enabled: true
 		}
  	],
-	settingsVersion: SETTINGS_VERSION
-}
+	settingsVersion: SETTINGS_VERSION,
+	lastUsedDirectPromptCommand: "opencode --agent <agent> --prompt <prompt>",
+	lastUsedDirectPromptAgent: "Build"
+};
 
 type LegacyCommandTemplate = Omit<CommandTemplate, "agentName"> & { defaultAgent?: string; agentId?: string; agentName?: string };
 
