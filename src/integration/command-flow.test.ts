@@ -49,6 +49,31 @@ function createPlugin(overrides: Partial<AITerminalSettings> = {}): AITerminalPl
 	return plugin;
 }
 
+const getDirectPromptTextarea = (modal: DirectPromptModal): HTMLTextAreaElement => {
+	const textarea = modal.contentEl.querySelector("textarea");
+	if (!textarea) {
+		throw new Error("Prompt textarea not found.");
+	}
+	return textarea as HTMLTextAreaElement;
+};
+
+const getDirectPromptExecuteButton = (modal: DirectPromptModal): HTMLButtonElement => {
+	const executeButton = modal.contentEl.querySelector("button.mod-cta");
+	if (!executeButton) {
+		throw new Error("Execute button not found.");
+	}
+	return executeButton as HTMLButtonElement;
+};
+
+const setPromptValue = (textarea: HTMLTextAreaElement, value: string): void => {
+	textarea.value = value;
+	textarea.dispatchEvent(new Event("input", { bubbles: true }));
+};
+
+const flushPromises = async (): Promise<void> => {
+	await new Promise(resolve => setTimeout(resolve, 0));
+};
+
 beforeEach(() => {
 	launchSpy.mockClear();
 	resolveForPowerShellSpy.mockClear();
@@ -77,17 +102,20 @@ describe("integration command flow", () => {
 		});
 
 		(plugin as any).addCommandsToMenu(menu, file, "selected text");
-	expect((menu as any).items.length).toBeGreaterThan(0);
+		expect((menu as any).items.length).toBeGreaterThan(0);
 
-	(menu as any).items[0]?.trigger();
+		(menu as any).items[0]?.trigger();
 		expect(lastModal).toBeInstanceOf(DirectPromptModal);
-		(lastModal as any).promptText = "Explain the selection";
 
-		const executeButton = lastModal?.contentEl.querySelector("button.mod-cta") as HTMLButtonElement;
-		expect(executeButton).toBeTruthy();
+		const modal = lastModal as DirectPromptModal;
+		const textarea = getDirectPromptTextarea(modal);
+		setPromptValue(textarea, "Explain the selection");
+
+		const executeButton = getDirectPromptExecuteButton(modal);
+		expect(executeButton.disabled).toBe(false);
 		executeButton.click();
 
-		await new Promise(resolve => setTimeout(resolve, 0));
+		await flushPromises();
 
 		expect(resolveForPowerShellSpy).toHaveBeenCalled();
 		expect(launchSpy).toHaveBeenCalledWith(

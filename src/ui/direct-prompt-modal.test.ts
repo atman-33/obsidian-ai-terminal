@@ -26,6 +26,28 @@ const createPlugin = () => {
 	};
 };
 
+const getPromptTextarea = (modal: DirectPromptModal): HTMLTextAreaElement => {
+	const textarea = modal.contentEl.querySelector("textarea");
+	if (!textarea) {
+		throw new Error("Prompt textarea not found.");
+	}
+	return textarea as HTMLTextAreaElement;
+};
+
+const getExecuteButton = (modal: DirectPromptModal): HTMLButtonElement => {
+	const executeButton = Array.from(modal.contentEl.querySelectorAll("button"))
+		.find(button => button.textContent === "Execute");
+	if (!executeButton) {
+		throw new Error("Execute button not found.");
+	}
+	return executeButton as HTMLButtonElement;
+};
+
+const setPromptValue = (textarea: HTMLTextAreaElement, value: string): void => {
+	textarea.value = value;
+	textarea.dispatchEvent(new Event("input"));
+};
+
 describe("DirectPromptModal", () => {
 	beforeEach(() => {
 		setupDom();
@@ -39,7 +61,7 @@ describe("DirectPromptModal", () => {
 		const modal = new DirectPromptModal(plugin.app, plugin as any);
 		modal.onOpen();
 
-		const textarea = modal.contentEl.querySelector("textarea") as HTMLTextAreaElement;
+		const textarea = getPromptTextarea(modal);
 		expect(textarea.value).toBe("Review this code");
 		expect(textarea.selectionStart).toBe(textarea.value.length);
 		expect(textarea.selectionEnd).toBe(textarea.value.length);
@@ -105,5 +127,58 @@ describe("DirectPromptModal", () => {
 		expect((modal as any).resolvePlaceholderValue("relative-path")).toBe("Notes/2026-01-17.md");
 		expect((modal as any).resolvePlaceholderValue("vault")).toBe("/vault");
 		expect((modal as any).resolvePlaceholderValue("selection")).toBe("function foo() {}");
+	});
+
+	it("disables execute button when prompt is empty", () => {
+		const plugin = createPlugin();
+		const modal = new DirectPromptModal(plugin.app, plugin as any);
+
+		modal.onOpen();
+
+		const executeButton = getExecuteButton(modal);
+		expect(executeButton.disabled).toBe(true);
+	});
+
+	it("enables execute button after entering text", () => {
+		const plugin = createPlugin();
+		const modal = new DirectPromptModal(plugin.app, plugin as any);
+
+		modal.onOpen();
+
+		const textarea = getPromptTextarea(modal);
+		const executeButton = getExecuteButton(modal);
+
+		setPromptValue(textarea, "Review this");
+
+		expect(executeButton.disabled).toBe(false);
+	});
+
+	it("disables execute button again after clearing text", () => {
+		const plugin = createPlugin();
+		const modal = new DirectPromptModal(plugin.app, plugin as any);
+
+		modal.onOpen();
+
+		const textarea = getPromptTextarea(modal);
+		const executeButton = getExecuteButton(modal);
+
+		setPromptValue(textarea, "Check logs");
+		setPromptValue(textarea, "");
+
+		expect(executeButton.disabled).toBe(true);
+	});
+
+	it("keeps execute button disabled for whitespace-only prompt", () => {
+		const plugin = createPlugin();
+		const modal = new DirectPromptModal(plugin.app, plugin as any);
+
+		modal.onOpen();
+
+		const textarea = getPromptTextarea(modal);
+		const executeButton = getExecuteButton(modal);
+
+		setPromptValue(textarea, "   ");
+
+		expect(executeButton.disabled).toBe(true);
 	});
 });
