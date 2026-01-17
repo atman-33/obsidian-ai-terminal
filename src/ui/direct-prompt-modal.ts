@@ -14,6 +14,7 @@ export class DirectPromptModal extends Modal {
 	private promptTextArea?: HTMLTextAreaElement;
 	private selectedText?: string;
 
+	private executeButton?: HTMLButtonElement;
 	constructor(
 		app: App,
 		private plugin: AITerminalPlugin,
@@ -79,6 +80,7 @@ export class DirectPromptModal extends Modal {
 					.setValue(this.promptText)
 					.onChange(value => {
 						this.promptText = value;
+						this.updateExecuteButtonState(value, enabledAgents);
 					});
 				text.inputEl.rows = 6;
 				text.inputEl.setCssProps({ width: "100%" });
@@ -97,10 +99,11 @@ export class DirectPromptModal extends Modal {
 			text: "Execute",
 			cls: "mod-cta"
 		});
+		this.executeButton = executeButton;
 		if (enabledAgents.length === 0) {
-			executeButton.disabled = true;
 			executeButton.title = "No enabled agents found. Please configure agents in settings.";
 		}
+		this.updateExecuteButtonState(this.promptText, enabledAgents);
 		executeButton.addEventListener("click", () => {
 			void this.executePrompt(enabledAgents);
 		});
@@ -232,26 +235,36 @@ export class DirectPromptModal extends Modal {
 			return;
 		}
 
-		const text = textarea.value;
+		const currentText = textarea.value;
 		const hasFocus = document.activeElement === textarea;
-		
-		// Use saved cursor position if provided, otherwise use current position
-		const start = savedStart !== null ? savedStart : textarea.selectionStart;
-		const end = savedEnd !== null ? savedEnd : textarea.selectionEnd;
-		const canUseSelection = (savedStart !== null || hasFocus) && start !== null && end !== null;
+		const selectionStart = savedStart ?? textarea.selectionStart;
+		const selectionEnd = savedEnd ?? textarea.selectionEnd;
+		const hasSelection = (savedStart !== null || hasFocus) && selectionStart !== null && selectionEnd !== null;
 
-		if (!canUseSelection) {
-			const shouldAddSpace = value.length > 0 && text.length > 0 && !/\s$/.test(text);
-			const nextValue = text + (shouldAddSpace ? " " : "") + value;
+		if (!hasSelection) {
+			const shouldAddSpace = value.length > 0 && currentText.length > 0 && !/\s$/.test(currentText);
+			const nextValue = `${currentText}${shouldAddSpace ? " " : ""}${value}`;
 			this.updatePromptText(textarea, nextValue, nextValue.length);
 			return;
 		}
 
-		const before = text.slice(0, start);
-		const after = text.slice(end);
+		const before = currentText.slice(0, selectionStart);
+		const after = currentText.slice(selectionEnd);
 		const nextValue = `${before}${value}${after}`;
 		const cursorPos = before.length + value.length;
 		this.updatePromptText(textarea, nextValue, cursorPos);
+	}
+
+	private updateExecuteButtonState(text: string, enabledAgents: AgentConfig[]): void {
+		if (!this.executeButton) {
+			return;
+		}
+		const hasEnabledAgents = enabledAgents.length > 0;
+		this.executeButton.disabled = !hasEnabledAgents || this.isPromptBlank(text);
+	}
+
+	private isPromptBlank(text: string): boolean {
+		return text.trim().length === 0;
 	}
 
 	private updatePromptText(textarea: HTMLTextAreaElement, nextValue: string, cursorPos: number): void {
