@@ -131,7 +131,11 @@ export class DirectPromptModal extends Modal {
 			});
 			link?.addEventListener("click", event => {
 				event.preventDefault();
-				this.insertPlaceholderValue(placeholder);
+				// Save cursor position before focus is lost
+				const textarea = this.promptTextArea;
+				const savedStart = textarea?.selectionStart ?? null;
+				const savedEnd = textarea?.selectionEnd ?? null;
+				this.insertPlaceholderValue(placeholder, savedStart, savedEnd);
 			});
 			if (index < placeholderNames.length - 1) {
 				safeDescEl.appendText?.(", ");
@@ -198,9 +202,9 @@ export class DirectPromptModal extends Modal {
 		await this.plugin.saveSettings();
 	}
 
-	private insertPlaceholderValue(placeholder: string): void {
+	private insertPlaceholderValue(placeholder: string, savedStart: number | null = null, savedEnd: number | null = null): void {
 		const value = this.resolvePlaceholderValue(placeholder);
-		this.insertAtCursor(value);
+		this.insertAtCursor(value, savedStart, savedEnd);
 	}
 
 	private resolvePlaceholderValue(placeholder: string): string {
@@ -222,7 +226,7 @@ export class DirectPromptModal extends Modal {
 		}
 	}
 
-	private insertAtCursor(value: string): void {
+	private insertAtCursor(value: string, savedStart: number | null = null, savedEnd: number | null = null): void {
 		const textarea = this.promptTextArea;
 		if (!textarea) {
 			return;
@@ -230,9 +234,11 @@ export class DirectPromptModal extends Modal {
 
 		const text = textarea.value;
 		const hasFocus = document.activeElement === textarea;
-		const start = textarea.selectionStart;
-		const end = textarea.selectionEnd;
-		const canUseSelection = hasFocus && start !== null && end !== null;
+		
+		// Use saved cursor position if provided, otherwise use current position
+		const start = savedStart !== null ? savedStart : textarea.selectionStart;
+		const end = savedEnd !== null ? savedEnd : textarea.selectionEnd;
+		const canUseSelection = (savedStart !== null || hasFocus) && start !== null && end !== null;
 
 		if (!canUseSelection) {
 			const shouldAddSpace = value.length > 0 && text.length > 0 && !/\s$/.test(text);
