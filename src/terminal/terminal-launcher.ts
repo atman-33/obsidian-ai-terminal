@@ -62,7 +62,7 @@ export class TerminalLauncher {
 			console.log("[AI Terminal] Launching Windows Terminal:");
 			console.log("  Working dir:", workingDir);
 			console.log("  Command:", command);
-			console.log("  Encoded (Base64):", encodedCommand.substring(0, 50) + "...");
+			// console.log("  Encoded (Base64):", encodedCommand);
 
 			spawn("wt.exe", args, {
 				detached: true,

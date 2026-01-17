@@ -22,6 +22,8 @@ export class PlaceholderResolver {
 		// Build prompt/agent raw values (prompt may contain nested placeholders)
 		let promptValue = context.prompt || defaults.defaultPrompt || "";
 		promptValue = this.replacePlaceholdersWithValues(promptValue, rawValues);
+		// PowerShell here-strings should avoid double quotes inside the prompt
+		promptValue = promptValue.replace(/"/g, "'");
 		const agentValue = context.agent || defaults.agentCommand || "";
 
 		// Build command by substituting placeholders with PowerShell variables
@@ -75,7 +77,13 @@ export class PlaceholderResolver {
 		if (value === "") {
 			return `${variableName} = ''`;
 		}
-		return `${variableName} = @'\n${value}\n'@`;
+		// Use double-quoted here-string to avoid issues with '@' sequences
+		// Escape backticks, double quotes, and dollar signs for PowerShell
+		const escapedValue = value
+			.replace(/`/g, '``')
+			.replace(/"/g, '`"')
+			.replace(/\$/g, '`$');
+		return `${variableName} = @"\n${escapedValue}\n"@`;
 	}
 
 	private getRawPlaceholderValues(context: ExecutionContext): {
@@ -121,8 +129,15 @@ export class PlaceholderResolver {
 	}
 
 	private replacePlaceholdersWithVariables(text: string): string {
-		return text
-			.replace(/<prompt>/g, "$aiPrompt")
+		let resolved = text;
+
+		// Ensure prompt placeholder is always quoted, but avoid double-quoting
+		resolved = resolved.replace(/"<prompt>"/g, '"$aiPrompt"');
+		resolved = resolved.replace(/'<prompt>'/g, '"$aiPrompt"');
+		resolved = resolved.replace(/<prompt>/g, '"$aiPrompt"');
+		resolved = resolved.replace(/(?<!["'])\$aiPrompt(?!["'])/g, '"$aiPrompt"');
+
+		return resolved
 			.replace(/<agent>/g, "$aiAgent")
 			.replace(/<file>/g, "$aiFile")
 			.replace(/<path>/g, "$aiPath")
