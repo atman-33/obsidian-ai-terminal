@@ -17,6 +17,16 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
 
+<!-- SOFTWARE DEVELOPMENT POLICIES:START -->
+# Software Development Policies
+
+- `docs/development-policy.md`: Coding standards, branch strategy, commit message conventions, and more
+- `docs/testing-policy.md`: Testing strategy, coverage targets
+- `docs/review-policy.md`: Code review criteria, checklists
+- `docs/deployment-policy.md`: Deployment procedures, CI/CD pipeline
+
+<!-- SOFTWARE DEVELOPMENT POLICIES:END -->
+
 # Obsidian community plugin
 
 ## Project overview
