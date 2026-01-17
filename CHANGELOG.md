@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-01-17
+
 ### Added
 - **Direct Prompt Feature**: Execute ad-hoc commands with a dedicated modal dialog
 - **Agent Management**: Centralized configuration for AI agents in settings
@@ -41,4 +43,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Secure placeholder value sanitization
 - Shell argument escaping for file paths
 
+[1.1.0]: https://github.com/atman-33/obsidian-ai-terminal/releases/tag/1.1.0
 [1.0.0]: https://github.com/atman-33/obsidian-ai-terminal/releases/tag/1.0.0
