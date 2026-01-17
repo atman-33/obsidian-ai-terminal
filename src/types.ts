@@ -6,6 +6,11 @@ import { TFile, Vault } from "obsidian";
 export type PlatformType = "windows-terminal";
 
 /**
+ * Supported terminal modes
+ */
+export type TerminalMode = "external" | "embedded";
+
+/**
  * Command template configuration for launching AI agents
  */
 export interface AgentConfig {
@@ -45,6 +50,9 @@ export interface CommandTemplate {
 export interface AITerminalSettings {
 	/** Terminal type to use */
 	terminalType: PlatformType;
+
+	/** Terminal mode to use */
+	terminalMode: TerminalMode;
 	
 	/** Managed list of AI agents */
 	agents: AgentConfig[];

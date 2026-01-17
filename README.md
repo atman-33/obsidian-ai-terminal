@@ -10,6 +10,7 @@ Launch external terminal sessions with AI agents (GitHub Copilot CLI or OpenCode
 - **Context-Aware Execution**: Launch terminals with file paths, selections, and custom prompts automatically inserted
 - **Multiple Access Points**: Execute commands from the command palette, file context menu, or editor context menu
 - **Windows Terminal Support**: Launch PowerShell sessions in Windows Terminal (MVP)
+- **Embedded Terminal View**: Optional in-app terminal view for focused sessions
 - **Flexible Placeholder System**: Use file paths, vault root, selection, and custom prompts in your commands
 - **Command Editor UX**: Full-width multi-line fields and unsaved changes warning
 - **Direct Prompt UX**: Optional prompt persistence and clickable placeholder insertion
@@ -82,6 +83,13 @@ Configure command templates in Settings → AI Terminal:
    - **Enabled**: Toggle to show/hide in menus
 3. **Save**: Changes persist immediately
 
+### Terminal Mode
+
+Choose how commands are executed in **Settings → AI Terminal → Terminal mode**:
+
+- **External terminal**: Launch Windows Terminal (default)
+- **Embedded terminal**: Run commands inside the AI Terminal view
+
 ### Available Placeholders
 
 Use these placeholders in command templates - they're replaced automatically based on context:
@@ -129,6 +137,12 @@ python analyze.py --file "<path>" --vault "<vault>"
 ```
 
 ## Usage
+
+### Open AI Terminal View
+
+1. Press `Ctrl+P` (or `Cmd+P` on Mac)
+2. Select **"Open AI Terminal"**
+3. The embedded terminal opens in the right sidebar
 
 ### Direct Prompt Execution
 

@@ -35,6 +35,7 @@ function createPlugin(overrides: Partial<AITerminalSettings> = {}): AITerminalPl
 	(plugin as any).app = mockApp;
 	(plugin as any).settings = {
 		terminalType: "windows-terminal",
+		terminalMode: "external",
 		agents: [],
 		commands: [],
 		settingsVersion: 1,
@@ -91,6 +92,7 @@ describe("integration command flow", () => {
 
 		expect(resolveForPowerShellSpy).toHaveBeenCalled();
 		expect(launchSpy).toHaveBeenCalledWith(
+			plugin.settings.terminalMode,
 			plugin.settings.terminalType,
 			"resolved-command",
 			"/tmp"
@@ -162,6 +164,7 @@ describe("integration command flow", () => {
 			})
 		);
 		expect(launchSpy).toHaveBeenCalledWith(
+			plugin.settings.terminalMode,
 			plugin.settings.terminalType,
 			"resolved-command",
 			"/tmp"

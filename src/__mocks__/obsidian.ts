@@ -178,6 +178,36 @@ export class App {
 	}
 }
 
+export class WorkspaceLeaf {
+	view: any;
+	async setViewState(state: any): Promise<void> {
+		this.view = state;
+	}
+}
+
+export class ItemView {
+	app: App;
+	leaf: WorkspaceLeaf;
+	contentEl: HTMLElement & {createEl?: any; createDiv?: any; empty?: any; addClass?: any};
+
+	constructor(leaf: WorkspaceLeaf) {
+		this.leaf = leaf;
+		this.app = new App();
+		this.contentEl = addElementHelpers(document.createElement("div"));
+	}
+
+	getViewType(): string {
+		return "";
+	}
+
+	getDisplayText(): string {
+		return "";
+	}
+
+	onOpen(): void {}
+	onClose(): void {}
+}
+
 export class MenuItem {
 	private onClickCallback?: () => void;
 	private title?: string;

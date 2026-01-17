@@ -16,7 +16,7 @@ export class CommandExecutor {
 	constructor(private plugin: AITerminalPlugin) {
 		this.contextCollector = new ContextCollector(plugin.app);
 		this.placeholderResolver = new PlaceholderResolver(this.contextCollector);
-		this.terminalLauncher = new TerminalLauncher();
+		this.terminalLauncher = new TerminalLauncher(plugin.app);
 	}
 
 	/**
@@ -71,6 +71,7 @@ export class CommandExecutor {
 
 			// Launch terminal
 			await this.terminalLauncher.launch(
+				this.plugin.settings.terminalMode,
 				this.plugin.settings.terminalType,
 				resolvedCommand,
 				workingDir

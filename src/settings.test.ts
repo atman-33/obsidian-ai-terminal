@@ -27,12 +27,18 @@ describe("settings migration", () => {
 });
 
 describe("settings reset", () => {
+	it("includes terminal mode in defaults", () => {
+		const defaults = createDefaultSettings();
+		expect(defaults.terminalMode).toBe("external");
+	});
+
 	it("restores defaults and saves settings", async () => {
 		const defaults = createDefaultSettings();
 		const plugin = {
 			settings: {
 				...defaults,
 				terminalType: "windows-terminal",
+				terminalMode: "external",
 				agents: [],
 				commands: [],
 				rememberLastPrompt: true,

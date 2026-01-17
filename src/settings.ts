@@ -1,6 +1,6 @@
 import {App, Modal, Notice, PluginSettingTab, Setting} from "obsidian";
 import AITerminalPlugin from "./main";
-import {AgentConfig, AITerminalSettings, CommandTemplate, PlatformType, AVAILABLE_PLACEHOLDERS} from "./types";
+import {AgentConfig, AITerminalSettings, CommandTemplate, PlatformType, TerminalMode, AVAILABLE_PLACEHOLDERS} from "./types";
 import {CommandEditorModal} from "./ui/command-editor";
 import {CommandManager} from "./commands/command-manager";
 import {AgentListEditor} from "./ui/agent-list-editor";
@@ -21,6 +21,7 @@ const DEFAULT_AGENTS: AgentConfig[] = [
 
 export const DEFAULT_SETTINGS: AITerminalSettings = {
 	terminalType: "windows-terminal",
+	terminalMode: "external",
 	agents: DEFAULT_AGENTS.map(agent => ({...agent})),
 	commands: [
 		{
@@ -93,7 +94,13 @@ export function migrateSettings(
 		settingsVersion: SETTINGS_VERSION
 	};
 
-	if (settings.agents && settings.agents.length > 0 && settings.settingsVersion !== undefined && settings.settingsVersion >= SETTINGS_VERSION) {
+	const isCurrentVersion = !!(
+		settings.agents &&
+		settings.agents.length > 0 &&
+		settings.settingsVersion !== undefined &&
+		settings.settingsVersion >= SETTINGS_VERSION
+	);
+	if (isCurrentVersion) {
 		return base;
 	}
 
@@ -102,68 +109,21 @@ export function migrateSettings(
 		? settings.agents
 		: DEFAULT_AGENTS.map(agent => ({...agent}));
 	const existingNames = new Set<string>();
-	const agentsByMatch = new Map<string, AgentConfig>();
-	const agents: AgentConfig[] = [];
-
-	rawAgents.forEach(agent => {
-		const legacyAgent = agent as AgentConfig & { id?: string; command?: string };
-		const candidate = legacyAgent.command?.trim() || legacyAgent.name?.trim() || legacyAgent.id?.trim() || "";
-		if (!candidate) {
-			return;
-		}
-		const name = createUniqueAgentName(candidate, existingNames);
-		const normalizedName = normalizeAgentMatch(name);
-		const mapped: AgentConfig = {
-			name,
-			enabled: legacyAgent.enabled ?? true
-		};
-		agents.push(mapped);
-		agentsByMatch.set(normalizedName, mapped);
-		if (legacyAgent.id) {
-			agentsByMatch.set(normalizeAgentMatch(legacyAgent.id), mapped);
-		}
-		if (legacyAgent.name) {
-			agentsByMatch.set(normalizeAgentMatch(legacyAgent.name), mapped);
-		}
-		if (legacyAgent.command) {
-			agentsByMatch.set(normalizeAgentMatch(legacyAgent.command), mapped);
-		}
-	});
+	const {agents, agentsByMatch} = buildAgentMappings(rawAgents, existingNames);
 
 	const migratedCommands = legacyCommands.map(command => {
-		const legacyAgent = command.defaultAgent?.trim();
-		let agentName = command.agentName ?? command.agentId;
-		if (!agentName) {
-			if (legacyAgent) {
-				const match = agentsByMatch.get(normalizeAgentMatch(legacyAgent));
-				if (match) {
-					agentName = match.name;
-				} else {
-					const name = createUniqueAgentName(legacyAgent, existingNames);
-					const newAgent: AgentConfig = {
-						name,
-						enabled: true
-					};
-					agents.push(newAgent);
-					agentsByMatch.set(normalizeAgentMatch(newAgent.name), newAgent);
-					agentName = newAgent.name;
-				}
-			} else {
-				agentName = agents[0]?.name ?? "copilot";
-			}
-		}
-
+		const agentName = resolveAgentName(command, agents, agentsByMatch, existingNames);
 		const {defaultAgent, agentId, ...rest} = command as LegacyCommandTemplate;
 		const migratedCommand = {
 			...rest,
 			agentName
 		} as CommandTemplate;
-		
+
 		// Migrate non-UUID IDs to UUID
 		if (!isValidUUID(migratedCommand.id)) {
 			migratedCommand.id = generateUUID();
 		}
-		
+
 		return migratedCommand;
 	});
 
@@ -173,6 +133,77 @@ export function migrateSettings(
 		commands: migratedCommands,
 		settingsVersion: SETTINGS_VERSION
 	};
+
+	function buildAgentMappings(inputAgents: AgentConfig[], existing: Set<string>): {
+		agents: AgentConfig[];
+		agentsByMatch: Map<string, AgentConfig>;
+	} {
+		const mappedAgents: AgentConfig[] = [];
+		const mappedAgentsByMatch = new Map<string, AgentConfig>();
+
+		inputAgents.forEach(agent => {
+			const legacyAgent = agent as AgentConfig & { id?: string; command?: string };
+			const candidate = legacyAgent.command?.trim()
+				|| legacyAgent.name?.trim()
+				|| legacyAgent.id?.trim()
+				|| "";
+			if (!candidate) {
+				return;
+			}
+
+			const name = createUniqueAgentName(candidate, existing);
+			const normalizedName = normalizeAgentMatch(name);
+			const mapped: AgentConfig = {
+				name,
+				enabled: legacyAgent.enabled ?? true
+			};
+			mappedAgents.push(mapped);
+			mappedAgentsByMatch.set(normalizedName, mapped);
+
+			if (legacyAgent.id) {
+				mappedAgentsByMatch.set(normalizeAgentMatch(legacyAgent.id), mapped);
+			}
+			if (legacyAgent.name) {
+				mappedAgentsByMatch.set(normalizeAgentMatch(legacyAgent.name), mapped);
+			}
+			if (legacyAgent.command) {
+				mappedAgentsByMatch.set(normalizeAgentMatch(legacyAgent.command), mapped);
+			}
+		});
+
+		return {agents: mappedAgents, agentsByMatch: mappedAgentsByMatch};
+	}
+
+	function resolveAgentName(
+		command: LegacyCommandTemplate,
+		agentsList: AgentConfig[],
+		agentsLookup: Map<string, AgentConfig>,
+		existing: Set<string>
+	): string {
+		const legacyAgent = command.defaultAgent?.trim();
+		let agentName = command.agentName ?? command.agentId;
+		if (agentName) {
+			return agentName;
+		}
+
+		if (legacyAgent) {
+			const match = agentsLookup.get(normalizeAgentMatch(legacyAgent));
+			if (match) {
+				return match.name;
+			}
+
+			const name = createUniqueAgentName(legacyAgent, existing);
+			const newAgent: AgentConfig = {
+				name,
+				enabled: true
+			};
+			agentsList.push(newAgent);
+			agentsLookup.set(normalizeAgentMatch(newAgent.name), newAgent);
+			return newAgent.name;
+		}
+
+		return agentsList[0]?.name ?? "copilot";
+	}
 }
 
 export class AITerminalSettingTab extends PluginSettingTab {
@@ -189,14 +220,33 @@ export class AITerminalSettingTab extends PluginSettingTab {
 
 	display(): void {
 		const {containerEl} = this;
-
 		containerEl.empty();
 
+		this.renderTerminalSection(containerEl);
+		this.agentListEditor.render(containerEl, () => this.refresh());
+		this.renderCommandTemplatesSection(containerEl);
+		this.renderDirectPromptSection(containerEl);
+		this.renderPlaceholderReference(containerEl);
+		this.renderResetSection(containerEl);
+	}
+
+	private renderTerminalSection(containerEl: HTMLElement): void {
 		new Setting(containerEl)
 			.setName("Terminal configuration")
 			.setHeading();
 
-		// Terminal Type Setting
+		new Setting(containerEl)
+			.setName("Terminal mode")
+			.setDesc("Choose between embedded or external terminal")
+			.addDropdown(dropdown => dropdown
+				.addOption("external", "External terminal")
+				.addOption("embedded", "Embedded terminal")
+				.setValue(this.plugin.settings.terminalMode)
+				.onChange(async (value: TerminalMode) => {
+					this.plugin.settings.terminalMode = value;
+					await this.plugin.saveSettings();
+				}));
+
 		new Setting(containerEl)
 			.setName("Terminal type")
 			.setDesc("Select which terminal to use when launching AI agents")
@@ -207,21 +257,18 @@ export class AITerminalSettingTab extends PluginSettingTab {
 					this.plugin.settings.terminalType = value;
 					await this.plugin.saveSettings();
 				}));
+	}
 
-		// Agent List Section
-		this.agentListEditor.render(containerEl, () => this.display());
-
-		// Command Templates Section
+	private renderCommandTemplatesSection(containerEl: HTMLElement): void {
 		new Setting(containerEl)
 			.setName("Command templates")
 			.setHeading();
-		
+
 		containerEl.createEl("p", {
 			text: "Define custom commands to launch AI agents with specific prompts and arguments.",
 			cls: "setting-item-description"
 		});
 
-		// Add Command button
 		new Setting(containerEl)
 			.setName("Add new command")
 			.setDesc("Create a new command template")
@@ -235,85 +282,84 @@ export class AITerminalSettingTab extends PluginSettingTab {
 						this.plugin.settings.agents,
 						async (command) => {
 							await this.commandManager.addCommand(command);
-							this.display(); // Refresh settings
+							this.refresh();
 						}
 					);
 					modal.open();
 				}));
 
-		// Display existing commands
 		const commands = this.commandManager.getAllCommands();
-		
 		if (commands.length === 0) {
 			containerEl.createEl("p", {
 				text: "No command templates configured yet. Click 'add command' to create one.",
 				cls: "setting-item-description"
 			});
-		} else {
-			commands.forEach((command, index) => {
-				const setting = new Setting(containerEl)
-					.setName(command.name)
-					.setDesc(`ID: ${command.id} | Template: ${command.template.substring(0, 50)}${command.template.length > 50 ? "..." : ""}`);
-
-				// Enabled toggle
-				setting.addToggle(toggle => toggle
-					.setValue(command.enabled)
-					.onChange(async () => {
-						await this.commandManager.toggleCommand(command.id);
-						this.display();
-					}));
-
-				// Edit button
-				setting.addButton(button => button
-					.setButtonText("Edit")
-					.onClick(() => {
-						const modal = new CommandEditorModal(
-							this.app,
-							{...command},
-							this.plugin.settings.agents,
-							async (updated) => {
-								await this.commandManager.updateCommand(command.id, updated);
-								this.display();
-							}
-						);
-						modal.open();
-					}));
-
-				// Move up button
-				if (index > 0) {
-					setting.addButton(button => button
-						.setIcon("up-chevron-glyph")
-						.setTooltip("Move up")
-						.onClick(async () => {
-							await this.commandManager.moveCommandUp(command.id);
-							this.display();
-						}));
-				}
-
-				// Move down button
-				if (index < commands.length - 1) {
-					setting.addButton(button => button
-						.setIcon("down-chevron-glyph")
-						.setTooltip("Move down")
-						.onClick(async () => {
-							await this.commandManager.moveCommandDown(command.id);
-							this.display();
-						}));
-				}
-
-				// Remove button
-				setting.addButton(button => button
-					.setIcon("trash")
-					.setTooltip("Remove")
-					.setWarning()
-					.onClick(async () => {
-						await this.commandManager.removeCommand(command.id);
-						this.display();
-					}));
-			});
+			return;
 		}
 
-		// Direct Prompt Section
+		this.renderCommandList(containerEl, commands);
+	}
+
+	private renderCommandList(containerEl: HTMLElement, commands: CommandTemplate[]): void {
+		commands.forEach((command, index) => {
+			const setting = new Setting(containerEl)
+				.setName(command.name)
+				.setDesc(`ID: ${command.id} | Template: ${command.template.substring(0, 50)}${command.template.length > 50 ? "..." : ""}`);
+
+			setting.addToggle(toggle => toggle
+				.setValue(command.enabled)
+				.onChange(async () => {
+					await this.commandManager.toggleCommand(command.id);
+					this.refresh();
+				}));
+
+			setting.addButton(button => button
+				.setButtonText("Edit")
+				.onClick(() => {
+					const modal = new CommandEditorModal(
+						this.app,
+						{...command},
+						this.plugin.settings.agents,
+						async (updated) => {
+							await this.commandManager.updateCommand(command.id, updated);
+							this.refresh();
+						}
+					);
+					modal.open();
+				}));
+
+			if (index > 0) {
+				setting.addButton(button => button
+					.setIcon("up-chevron-glyph")
+					.setTooltip("Move up")
+					.onClick(async () => {
+						await this.commandManager.moveCommandUp(command.id);
+						this.refresh();
+					}));
+			}
+
+			if (index < commands.length - 1) {
+				setting.addButton(button => button
+					.setIcon("down-chevron-glyph")
+					.setTooltip("Move down")
+					.onClick(async () => {
+						await this.commandManager.moveCommandDown(command.id);
+						this.refresh();
+					}));
+			}
+
+			setting.addButton(button => button
+				.setIcon("trash")
+				.setTooltip("Remove")
+				.setWarning()
+				.onClick(async () => {
+					await this.commandManager.removeCommand(command.id);
+					this.refresh();
+				}));
+		});
+	}
+
+	private renderDirectPromptSection(containerEl: HTMLElement): void {
 		new Setting(containerEl)
 			.setName("Direct prompt")
 			.setHeading();
@@ -324,25 +370,27 @@ export class AITerminalSettingTab extends PluginSettingTab {
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.rememberLastPrompt)
 				.onChange(async (value: boolean) => {
-				this.plugin.settings.rememberLastPrompt = value;
-				await this.plugin.saveSettings();
+					this.plugin.settings.rememberLastPrompt = value;
+					await this.plugin.saveSettings();
 				}));
+	}
 
-		// Placeholder Reference
+	private renderPlaceholderReference(containerEl: HTMLElement): void {
 		const placeholderSection = containerEl.createDiv({cls: "ai-terminal-placeholder-reference"});
 		new Setting(placeholderSection)
 			.setName("Available placeholders")
 			.setHeading();
+
 		const placeholderList = placeholderSection.createEl("ul");
-		
 		AVAILABLE_PLACEHOLDERS.forEach(placeholder => {
 			const item = placeholderList.createEl("li");
 			item.createEl("code", {text: `<${placeholder.name}>`});
 			item.appendText(`: ${placeholder.description} `);
 			item.createEl("em", {text: `(e.g., ${placeholder.example})`});
 		});
+	}
 
-		// Reset Settings
+	private renderResetSection(containerEl: HTMLElement): void {
 		containerEl.createEl("hr");
 		new Setting(containerEl)
 			.setName("Reset all settings")
@@ -356,7 +404,7 @@ export class AITerminalSettingTab extends PluginSettingTab {
 						async () => {
 							await resetSettingsToDefaults(this.plugin);
 							new Notice("Settings reset to defaults.");
-							this.display();
+							this.refresh();
 						},
 						() => {
 							// no-op
@@ -364,6 +412,10 @@ export class AITerminalSettingTab extends PluginSettingTab {
 					);
 					modal.open();
 				}));
+	}
+
+	private refresh(): void {
+		this.display();
 	}
 }
 

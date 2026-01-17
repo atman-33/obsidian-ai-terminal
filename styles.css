@@ -73,3 +73,120 @@ AI Terminal Plugin Styles
 	margin-top: 20px;
 }
 
+/* AI terminal embedded view */
+.ai-terminal-terminal {
+	height: 100%;
+	width: 100%;
+}
+
+.ai-terminal-terminal .xterm {
+	height: 100%;
+}
+
+.ai-terminal-terminal .xterm-viewport {
+	overflow-y: auto;
+}
+
+/*
+ * xterm.js core styles
+ * The MIT License (MIT)
+ * Copyright (c) 2014-2024, xterm.js authors
+ * https://xtermjs.org
+ */
+.xterm {
+	font-feature-settings: "liga" 0;
+	position: relative;
+	user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+}
+
+.xterm.focus,
+.xterm:focus {
+	outline: none;
+}
+
+.xterm .xterm-helpers {
+	position: absolute;
+	top: 0;
+	z-index: 5;
+}
+
+.xterm .xterm-helper-textarea {
+	position: absolute;
+	opacity: 0;
+	left: -9999px;
+	top: 0;
+	width: 0;
+	height: 0;
+	z-index: -5;
+	white-space: nowrap;
+	overflow: hidden;
+	resize: none;
+}
+
+.xterm .composition-view {
+	background: #000;
+	color: #fff;
+	display: none;
+	position: absolute;
+	white-space: nowrap;
+	z-index: 1;
+}
+
+.xterm .composition-view.active {
+	display: block;
+}
+
+.xterm .xterm-viewport {
+	background-color: #000;
+	overflow-y: scroll;
+	cursor: default;
+	position: absolute;
+	right: 0;
+	left: 0;
+	top: 0;
+	bottom: 0;
+}
+
+.xterm .xterm-screen {
+	position: relative;
+}
+
+.xterm .xterm-rows {
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+
+.xterm .xterm-rows > div {
+	white-space: nowrap;
+}
+
+.xterm .xterm-rows span {
+	display: inline-block;
+	height: 1em;
+	vertical-align: top;
+}
+
+.xterm .xterm-decoration-container {
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 6;
+	pointer-events: none;
+}
+
+.xterm .xterm-decoration {
+	position: absolute;
+}
+
+.xterm .xterm-cursor-pointer,
+.xterm .xterm-screen canvas {
+	cursor: pointer;
+}
+
+.xterm .xterm-pointer-events {
+	pointer-events: auto;
+}
+
