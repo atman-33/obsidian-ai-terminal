@@ -1,4 +1,4 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
+import {App, Modal, Notice, PluginSettingTab, Setting} from "obsidian";
 import AITerminalPlugin from "./main";
 import {AgentConfig, AITerminalSettings, CommandTemplate, PlatformType, AVAILABLE_PLACEHOLDERS} from "./types";
 import {CommandEditorModal} from "./ui/command-editor";
@@ -42,8 +42,23 @@ export const DEFAULT_SETTINGS: AITerminalSettings = {
  	],
 	settingsVersion: SETTINGS_VERSION,
 	lastUsedDirectPromptCommand: "opencode --agent <agent> --prompt <prompt>",
-	lastUsedDirectPromptAgent: "Build"
+	lastUsedDirectPromptAgent: "Build",
+	rememberLastPrompt: false,
+	lastSavedPrompt: ""
 };
+
+export function createDefaultSettings(): AITerminalSettings {
+	return {
+		...DEFAULT_SETTINGS,
+		agents: DEFAULT_AGENTS.map(agent => ({...agent})),
+		commands: DEFAULT_SETTINGS.commands.map(command => ({...command}))
+	};
+}
+
+export async function resetSettingsToDefaults(plugin: {settings: AITerminalSettings; saveSettings: () => Promise<void>}): Promise<void> {
+	plugin.settings = createDefaultSettings();
+	await plugin.saveSettings();
+}
 
 type LegacyCommandTemplate = Omit<CommandTemplate, "agentName"> & { defaultAgent?: string; agentId?: string; agentName?: string };
 
@@ -298,6 +313,21 @@ export class AITerminalSettingTab extends PluginSettingTab {
 			});
 		}
 
+		// Direct Prompt Section
+		new Setting(containerEl)
+			.setName("Direct prompt")
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName("Remember last prompt")
+			.setDesc("Store and restore the last direct prompt text (opt-in)")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.rememberLastPrompt)
+				.onChange(async (value: boolean) => {
+				this.plugin.settings.rememberLastPrompt = value;
+				await this.plugin.saveSettings();
+				}));
+
 		// Placeholder Reference
 		const placeholderSection = containerEl.createDiv({cls: "ai-terminal-placeholder-reference"});
 		new Setting(placeholderSection)
@@ -311,5 +341,77 @@ export class AITerminalSettingTab extends PluginSettingTab {
 			item.appendText(`: ${placeholder.description} `);
 			item.createEl("em", {text: `(e.g., ${placeholder.example})`});
 		});
+
+		// Reset Settings
+		containerEl.createEl("hr");
+		new Setting(containerEl)
+			.setName("Reset all settings")
+			.setDesc("Restore all agents, commands, and preferences to their defaults")
+			.addButton(button => button
+				.setButtonText("Reset all settings")
+				.setWarning()
+				.onClick(() => {
+					const modal = new ResetSettingsModal(
+						this.app,
+						async () => {
+							await resetSettingsToDefaults(this.plugin);
+							new Notice("Settings reset to defaults.");
+							this.display();
+						},
+						() => {
+							// no-op
+						}
+					);
+					modal.open();
+				}));
+	}
+}
+
+class ResetSettingsModal extends Modal {
+	private didResolve = false;
+
+	constructor(
+		app: App,
+		private onConfirm: () => void,
+		private onCancel: () => void
+	) {
+		super(app);
+	}
+
+	onOpen() {
+		const {contentEl} = this;
+		contentEl.empty();
+		contentEl.createEl("h2", {text: "Reset all settings?"});
+		contentEl.createEl("p", {text: "This will restore all settings to defaults and cannot be undone."});
+
+		const list = contentEl.createEl("ul");
+		list.createEl("li", {text: "All AI agents (restored to default presets)"});
+		list.createEl("li", {text: "All command templates (restored to the default two templates)"});
+		list.createEl("li", {text: "All preferences (terminal type, prompt persistence, and more)"});
+
+		const buttonContainer = contentEl.createDiv({cls: "modal-button-container"});
+		const cancelButton = buttonContainer.createEl("button", {text: "Cancel"});
+		cancelButton.addEventListener("click", () => this.resolveAction(this.onCancel));
+
+		const confirmButton = buttonContainer.createEl("button", {
+			text: "Reset",
+			cls: "mod-warning"
+		});
+		confirmButton.addEventListener("click", () => this.resolveAction(this.onConfirm));
+
+		cancelButton.focus();
+	}
+
+	onClose() {
+		if (!this.didResolve) {
+			this.onCancel();
+		}
+		this.contentEl.empty();
+	}
+
+	private resolveAction(action: () => void): void {
+		this.didResolve = true;
+		action();
+		this.close();
 	}
 }

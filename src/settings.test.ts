@@ -1,5 +1,5 @@
-import {describe, it, expect} from "vitest";
-import {migrateSettings} from "./settings";
+import {describe, it, expect, vi} from "vitest";
+import {createDefaultSettings, migrateSettings, resetSettingsToDefaults} from "./settings";
 import {AITerminalSettings} from "./types";
 
 describe("settings migration", () => {
@@ -23,5 +23,27 @@ describe("settings migration", () => {
 		expect(migrated.agents.some(agent => agent.name === "noctis")).toBe(true);
 		expect(migrated.commands[0]?.agentName).toBe("noctis");
 		expect(migrated.settingsVersion).toBeGreaterThan(0);
+	});
+});
+
+describe("settings reset", () => {
+	it("restores defaults and saves settings", async () => {
+		const defaults = createDefaultSettings();
+		const plugin = {
+			settings: {
+				...defaults,
+				terminalType: "windows-terminal",
+				agents: [],
+				commands: [],
+				rememberLastPrompt: true,
+				lastSavedPrompt: "Keep this"
+			} as AITerminalSettings,
+			saveSettings: vi.fn(async () => {})
+		};
+
+		await resetSettingsToDefaults(plugin);
+
+		expect(plugin.settings).toEqual(createDefaultSettings());
+		expect(plugin.saveSettings).toHaveBeenCalledTimes(1);
 	});
 });

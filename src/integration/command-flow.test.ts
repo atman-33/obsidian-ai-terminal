@@ -38,6 +38,8 @@ function createPlugin(overrides: Partial<AITerminalSettings> = {}): AITerminalPl
 		agents: [],
 		commands: [],
 		settingsVersion: 1,
+		rememberLastPrompt: false,
+		lastSavedPrompt: "",
 		...overrides
 	};
 	(plugin as any).saveSettings = vi.fn().mockResolvedValue(undefined);

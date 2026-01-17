@@ -31,6 +31,17 @@ AI Terminal Plugin Styles
 	font-size: 0.9em;
 }
 
+/* Direct prompt placeholder links */
+.ai-terminal-placeholder-link {
+	color: var(--text-accent);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.ai-terminal-placeholder-link:hover {
+	color: var(--text-accent-hover);
+}
+
 /* Vertical layout for long-form text inputs */
 .ai-terminal-vertical-field {
 	display: flex;

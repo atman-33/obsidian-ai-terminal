@@ -53,12 +53,20 @@ export interface AITerminalSettings {
 	commands: CommandTemplate[];
 	
 	/** Settings schema version */
-	settingsVersion: number;	
+	settingsVersion: number;
+
 	/** Last used command template in Direct Prompt */
 	lastUsedDirectPromptCommand?: string;
 	
 	/** Last used agent name in Direct Prompt */
-	lastUsedDirectPromptAgent?: string;}
+	lastUsedDirectPromptAgent?: string;
+
+	/** Remember last prompt text for Direct Prompt */
+	rememberLastPrompt: boolean;
+
+	/** Last saved prompt text (when remember is enabled) */
+	lastSavedPrompt: string;
+}
 
 /**
  * Execution context for command resolution

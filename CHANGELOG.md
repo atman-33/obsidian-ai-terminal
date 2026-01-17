@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Agent Management**: Centralized configuration for AI agents in settings
 - `<agent>` placeholder integration with the new agent list
 - User-facing improvements: Helper text, placeholders, and tooltips in UI
+- **Direct Prompt UX**: Optional prompt persistence and clickable placeholder insertion
+- **Settings Reset**: Restore all settings to defaults with confirmation
 
 ### Changed
 - **BREAKING**: Terminal working directory is now always set to vault root instead of the file's directory

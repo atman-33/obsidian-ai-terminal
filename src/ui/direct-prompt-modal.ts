@@ -3,7 +3,7 @@ import AITerminalPlugin from "../main";
 import {AgentConfig, CommandTemplate} from "../types";
 import {CommandExecutor} from "../commands/command-executor";
 import {ContextCollector} from "../placeholders/context-collector";
-import {buildContextDisplay, buildDirectPromptCommand} from "./direct-prompt-utils";
+import {buildDirectPromptCommand} from "./direct-prompt-utils";
 
 export class DirectPromptModal extends Modal {
 	private commandExecutor: CommandExecutor;
@@ -11,6 +11,7 @@ export class DirectPromptModal extends Modal {
 	private commandTemplate = "";
 	private selectedAgentName = "";
 	private promptText = "";
+	private promptTextArea?: HTMLTextAreaElement;
 	private selectedText?: string;
 
 	constructor(
@@ -30,6 +31,8 @@ export class DirectPromptModal extends Modal {
 		const {contentEl} = this;
 		contentEl.empty();
 		contentEl.createEl("h2", {text: "Direct prompt"});
+
+		this.promptText = this.getInitialPromptText();
 
 		const enabledAgents = this.getEnabledAgents();
 		this.selectedAgentName = this.plugin.settings.lastUsedDirectPromptAgent ?? enabledAgents[0]?.name ?? "";
@@ -69,7 +72,7 @@ export class DirectPromptModal extends Modal {
 
 		const promptSetting = new Setting(contentEl)
 			.setName("Prompt")
-			.setDesc("Available placeholders: <file>, <path>, <relative-path>, <dir>, <vault>, <selection>")
+			.setDesc("")
 			.addTextArea(text => {
 				text
 					.setPlaceholder("Enter your prompt here...")
@@ -79,8 +82,12 @@ export class DirectPromptModal extends Modal {
 					});
 				text.inputEl.rows = 6;
 				text.inputEl.setCssProps({ width: "100%" });
+				this.promptTextArea = text.inputEl;
 			});
 		promptSetting.settingEl.addClass("ai-terminal-vertical-field");
+
+		const placeholderNames = ["file", "path", "relative-path", "dir", "vault", "selection"];
+		this.buildPlaceholderDescription(promptSetting.descEl, placeholderNames);
 
 		const buttonContainer = contentEl.createDiv({cls: "modal-button-container"});
 		const cancelButton = buttonContainer.createEl("button", {text: "Cancel"});
@@ -98,7 +105,49 @@ export class DirectPromptModal extends Modal {
 			void this.executePrompt(enabledAgents);
 		});
 
-		promptSetting.settingEl.querySelector("textarea")?.focus();
+		this.focusPromptTextArea();
+	}
+
+	private getInitialPromptText(): string {
+		if (!this.plugin.settings.rememberLastPrompt) {
+			return "";
+		}
+		return this.plugin.settings.lastSavedPrompt ?? "";
+	}
+
+	private buildPlaceholderDescription(descEl: HTMLElement, placeholderNames: string[]): void {
+		const safeDescEl = descEl as HTMLElement & {
+			createEl?: (tag: string, options?: {text?: string; cls?: string}) => HTMLElement;
+			appendText?: (text: string) => void;
+			empty?: () => void;
+		};
+
+		safeDescEl.empty?.();
+		safeDescEl.appendText?.("Available placeholders: ");
+		placeholderNames.forEach((placeholder, index) => {
+			const link = safeDescEl.createEl?.("a", {
+				text: `<${placeholder}>`,
+				cls: "ai-terminal-placeholder-link"
+			});
+			link?.addEventListener("click", event => {
+				event.preventDefault();
+				this.insertPlaceholderValue(placeholder);
+			});
+			if (index < placeholderNames.length - 1) {
+				safeDescEl.appendText?.(", ");
+			}
+		});
+	}
+
+	private focusPromptTextArea(): void {
+		const textarea = this.promptTextArea;
+		if (!textarea) {
+			return;
+		}
+		textarea.focus();
+		const length = textarea.value.length;
+		textarea.selectionStart = length;
+		textarea.selectionEnd = length;
 	}
 
 	private getEnabledAgents(): AgentConfig[] {
@@ -118,10 +167,7 @@ export class DirectPromptModal extends Modal {
 			this.promptText
 		);
 
-		// Save last used values
-		this.plugin.settings.lastUsedDirectPromptCommand = this.commandTemplate;
-		this.plugin.settings.lastUsedDirectPromptAgent = this.selectedAgentName;
-		await this.plugin.saveSettings();
+		await this.persistDirectPromptSettings();
 
 		const directCommand: CommandTemplate = {
 			id: "direct-prompt",
@@ -141,5 +187,72 @@ export class DirectPromptModal extends Modal {
 		if (success) {
 			this.close();
 		}
+	}
+
+	private async persistDirectPromptSettings(): Promise<void> {
+		this.plugin.settings.lastUsedDirectPromptCommand = this.commandTemplate;
+		this.plugin.settings.lastUsedDirectPromptAgent = this.selectedAgentName;
+		if (this.plugin.settings.rememberLastPrompt) {
+			this.plugin.settings.lastSavedPrompt = this.promptText;
+		}
+		await this.plugin.saveSettings();
+	}
+
+	private insertPlaceholderValue(placeholder: string): void {
+		const value = this.resolvePlaceholderValue(placeholder);
+		this.insertAtCursor(value);
+	}
+
+	private resolvePlaceholderValue(placeholder: string): string {
+		switch (placeholder) {
+			case "file":
+				return this.file?.name ?? "";
+			case "path":
+				return this.file ? this.contextCollector.getFilePath(this.file) : "";
+			case "relative-path":
+				return this.file ? this.contextCollector.getRelativePath(this.file) : "";
+			case "dir":
+				return this.file ? this.contextCollector.getDirectoryPath(this.file) : "";
+			case "vault":
+				return this.contextCollector.getVaultPath();
+			case "selection":
+				return this.selectedText ?? "";
+			default:
+				return "";
+		}
+	}
+
+	private insertAtCursor(value: string): void {
+		const textarea = this.promptTextArea;
+		if (!textarea) {
+			return;
+		}
+
+		const text = textarea.value;
+		const hasFocus = document.activeElement === textarea;
+		const start = textarea.selectionStart;
+		const end = textarea.selectionEnd;
+		const canUseSelection = hasFocus && start !== null && end !== null;
+
+		if (!canUseSelection) {
+			const shouldAddSpace = value.length > 0 && text.length > 0 && !/\s$/.test(text);
+			const nextValue = text + (shouldAddSpace ? " " : "") + value;
+			this.updatePromptText(textarea, nextValue, nextValue.length);
+			return;
+		}
+
+		const before = text.slice(0, start);
+		const after = text.slice(end);
+		const nextValue = `${before}${value}${after}`;
+		const cursorPos = before.length + value.length;
+		this.updatePromptText(textarea, nextValue, cursorPos);
+	}
+
+	private updatePromptText(textarea: HTMLTextAreaElement, nextValue: string, cursorPos: number): void {
+		textarea.value = nextValue;
+		this.promptText = nextValue;
+		textarea.selectionStart = cursorPos;
+		textarea.selectionEnd = cursorPos;
+		textarea.focus();
 	}
 }
