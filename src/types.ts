@@ -8,8 +8,16 @@ export type PlatformType = "windows-terminal";
 /**
  * Command template configuration for launching AI agents
  */
+export interface AgentConfig {
+	/** Unique name (used for display and command) */
+	name: string;
+	
+	/** Whether this agent is enabled */
+	enabled: boolean;
+}
+
 export interface CommandTemplate {
-	/** Unique identifier (kebab-case) */
+	/** Unique identifier (UUID v4) */
 	id: string;
 	
 	/** Display name shown in UI */
@@ -21,8 +29,8 @@ export interface CommandTemplate {
 	/** Default prompt if <prompt> placeholder exists */
 	defaultPrompt?: string;
 	
-	/** Default agent if <agent> placeholder exists */
-	defaultAgent?: string;
+	/** Agent reference (from settings.agents) */
+	agentName: string;
 	
 	/** Whether this command is enabled */
 	enabled: boolean;
@@ -38,8 +46,26 @@ export interface AITerminalSettings {
 	/** Terminal type to use */
 	terminalType: PlatformType;
 	
+	/** Managed list of AI agents */
+	agents: AgentConfig[];
+	
 	/** User-defined command templates */
 	commands: CommandTemplate[];
+	
+	/** Settings schema version */
+	settingsVersion: number;
+
+	/** Last used command template in Direct Prompt */
+	lastUsedDirectPromptCommand?: string;
+	
+	/** Last used agent name in Direct Prompt */
+	lastUsedDirectPromptAgent?: string;
+
+	/** Remember last prompt text for Direct Prompt */
+	rememberLastPrompt: boolean;
+
+	/** Last saved prompt text (when remember is enabled) */
+	lastSavedPrompt: string;
 }
 
 /**
@@ -117,7 +143,7 @@ export const AVAILABLE_PLACEHOLDERS: PlaceholderInfo[] = [
 	},
 	{
 		name: "agent",
-		description: "Agent name (uses default if not specified)",
-		example: "noctis"
+		description: "Agent name",
+		example: "copilot"
 	}
 ];

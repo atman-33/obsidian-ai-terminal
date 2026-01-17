@@ -31,6 +31,40 @@ AI Terminal Plugin Styles
 	font-size: 0.9em;
 }
 
+/* Direct prompt placeholder links */
+.ai-terminal-placeholder-link {
+	color: var(--text-accent);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.ai-terminal-placeholder-link:hover {
+	color: var(--text-accent-hover);
+}
+
+/* Vertical layout for long-form text inputs */
+.ai-terminal-vertical-field {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+}
+
+.ai-terminal-vertical-field .setting-item-info {
+	width: 100%;
+	margin-bottom: 8px;
+	padding-right: 0;
+}
+
+.ai-terminal-vertical-field .setting-item-control {
+	width: 100%;
+	margin-left: 0;
+}
+
+.ai-terminal-vertical-field textarea {
+	width: 100%;
+	resize: vertical;
+}
+
 /* Modal button container */
 .modal-button-container {
 	display: flex;

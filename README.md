@@ -9,6 +9,9 @@ Launch external terminal sessions with AI agents (GitHub Copilot CLI or OpenCode
 - **Multiple Access Points**: Execute commands from the command palette, file context menu, or editor context menu
 - **Windows Terminal Support**: Launch PowerShell sessions in Windows Terminal (MVP)
 - **Flexible Placeholder System**: Use file paths, vault root, selection, and custom prompts in your commands
+- **Command Editor UX**: Full-width multi-line fields and unsaved changes warning
+- **Direct Prompt UX**: Optional prompt persistence and clickable placeholder insertion
+- **Settings Reset**: Restore all settings to defaults with a confirmation dialog
 
 ## Installation
 
@@ -44,6 +47,24 @@ Launch external terminal sessions with AI agents (GitHub Copilot CLI or OpenCode
 3. Enable the plugin in **Obsidian Settings → Community Plugins**
 
 ## Configuration
+
+### Agent Configuration
+
+Manage the AI agents available for your commands and direct prompts in **Settings → AI Terminal**.
+
+1. **Add Agent**: Click "Add new agent"
+2. **Configure**:
+   - **Name**: Display name (e.g., "GPT-4", "Local LLM")
+   - **ID**: Internal identifier
+   - **Description**: Optional details
+3. **Use**: Reference these agents in templates via `<agent>` or select them in the Direct Prompt dialog.
+
+### Direct Prompt Settings
+
+Configure Direct Prompt behavior in **Settings → AI Terminal → Direct prompt**:
+
+- **Remember last prompt** (optional): When enabled, the Direct Prompt dialog reuses your last prompt text.
+- **Clickable placeholders**: In the Direct Prompt dialog, click placeholders to insert resolved values at the cursor.
 
 ### Command Templates
 
@@ -106,6 +127,19 @@ python analyze.py --file "<path>" --vault "<vault>"
 ```
 
 ## Usage
+
+### Direct Prompt Execution
+
+Launch an ad-hoc command without creating a saved template:
+
+1. Open Command Palette (`Ctrl/Cmd+P`) and select **"AI Terminal: Open direct prompt"**
+   - Or use the context menu on a file/editor
+2. **Command**: Verify/edit the command template (defaults to saved preference)
+3. **Agent**: Select an agent from your configured list
+4. **Prompt**: Enter your instruction (supports placeholders like `<file>`, `<selection>`)
+   - Click placeholders in the description to insert resolved values at the cursor
+   - If enabled, the last prompt is restored automatically
+5. **Execute**: Click to launch the terminal
 
 ### From Command Palette
 

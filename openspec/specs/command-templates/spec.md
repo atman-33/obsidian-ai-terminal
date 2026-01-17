@@ -10,59 +10,68 @@ The plugin MUST allow users to define, store, and manage multiple command templa
 #### Scenario: Add new command template
 
 **Given** user opens plugin settings
+
 **When** user clicks "Add Command" button
+
 **Then** a new command template editor should appear
-**And** user should be able to input: id, name, template, default prompt, default agent
+
+**And** user should be able to input: id, name, template, default prompt, **agent (selected from dropdown)**
+
 **And** the template should be saved to plugin settings when confirmed
 
-#### Scenario: Edit existing command template
+#### Scenario: Select agent for template
 
-**Given** user has saved command templates
-**When** user opens plugin settings
-**Then** all command templates should be displayed in a list
-**And** user should be able to click "Edit" on any template
-**And** changes should be persisted when saved
+**Given** user is creating or editing a command template
 
-#### Scenario: Remove command template
+**When** user views agent field in template editor
 
-**Given** user has saved command templates
-**When** user clicks "Remove" on a template
-**Then** the template should be removed from settings
-**And** associated commands should be unregistered from command palette and context menus
+**Then** a dropdown should display all enabled agents from settings
 
-#### Scenario: Reorder command templates
+**And** user should select an agent from the dropdown (not free-text input)
 
-**Given** user has multiple command templates
-**When** user uses "Move Up" or "Move Down" buttons
-**Then** the template order should change
-**And** the order should be reflected in context menus
+**And** selected agent's id should be stored in template as `agentId`
+
+#### Scenario: Handle no enabled agents in template editor
+
+**Given** user has no enabled agents configured
+
+**When** user opens command template editor
+
+**Then** agent dropdown should be empty or show placeholder
+
+**And** warning should display: "Please configure at least one AI agent in settings"
+
+**And** template should not be savable until agent is selected
 
 ### Requirement: Validate command template syntax
 
-The plugin MUST validate command templates to ensure they contain valid placeholders and safe commands.
+The plugin MUST validate command templates to ensure they contain valid placeholders, safe commands, and valid agent references.
 
-#### Scenario: Accept valid command template
+#### Scenario: Validate agent reference on save
 
-**Given** user inputs template: `copilot -i "<prompt>"`
-**When** user saves the template
-**Then** the template should be accepted
-**And** no validation error should be shown
+**Given** user is saving a command template
 
-#### Scenario: Reject unknown placeholders
+**And** template has `agentId: "copilot"`
 
-**Given** user inputs template with unknown placeholder: `copilot <unknown>`
-**When** user attempts to save
+**When** validation runs
+
+**Then** validation should check if agent with id "copilot" exists in `settings.agents`
+
+**And** if agent exists, validation should pass
+
+**And** if agent does not exist, validation should fail with error: "Selected agent no longer exists. Please choose another agent."
+
+#### Scenario: Prevent saving template with invalid agent
+
+**Given** user attempts to save template with `agentId` referencing non-existent agent
+
+**When** user clicks save
+
 **Then** validation error should be shown
-**And** the template should not be saved
-**And** error message should list valid placeholders
 
-#### Scenario: Warn on potentially unsafe commands
+**And** template should not be saved
 
-**Given** user inputs template containing `rm -rf` or similar dangerous commands
-**When** user attempts to save
-**Then** a warning should be displayed
-**And** user should be required to confirm the template
-**And** warning should explain security risks
+**And** user should be prompted to select valid agent
 
 ### Requirement: Persist command templates across sessions
 

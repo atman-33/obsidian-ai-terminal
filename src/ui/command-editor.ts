@@ -1,5 +1,6 @@
 import {App, Modal, Setting, Notice} from "obsidian";
-import {CommandTemplate, AVAILABLE_PLACEHOLDERS} from "../types";
+import {AgentConfig, CommandTemplate, AVAILABLE_PLACEHOLDERS} from "../types";
+import {generateUUID} from "../utils/uuid";
 
 /**
  * Modal for creating or editing command templates
@@ -9,21 +10,27 @@ export class CommandEditorModal extends Modal {
 	private isEdit: boolean;
 	private originalId?: string;
 	private onSave: (command: CommandTemplate) => Promise<void>;
+	private agents: AgentConfig[];
+	private isDirty = false;
+	private skipConfirmation = false;
 
 	constructor(
 		app: App,
 		command: Partial<CommandTemplate> | null,
+		agents: AgentConfig[],
 		onSave: (command: CommandTemplate) => Promise<void>
 	) {
 		super(app);
 		this.isEdit = !!command;
 		this.originalId = command?.id;
+		this.agents = agents;
+		const defaultAgentName = this.getEnabledAgents()[0]?.name ?? "";
 		this.command = command || {
-			id: "",
+			id: generateUUID(),
 			name: "",
 			template: "",
 			defaultPrompt: "",
-			defaultAgent: "",
+			agentName: defaultAgentName,
 			enabled: true
 		};
 		this.onSave = onSave;
@@ -35,23 +42,6 @@ export class CommandEditorModal extends Modal {
 		contentEl.empty();
 		contentEl.createEl("h2", {text: this.isEdit ? "Edit Command Template" : "New Command Template"});
 
-		// ID field
-		new Setting(contentEl)
-			.setName("Command ID")
-			.setDesc("Unique identifier (kebab-case, no spaces)")
-			.addText(text => {
-				text
-					.setPlaceholder("My-command-id")
-					.setValue(this.command.id || "")
-					.onChange(value => {
-						this.command.id = value.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-					});
-				
-				if (this.isEdit) {
-					text.setDisabled(true);
-				}
-			});
-
 		// Name field
 		new Setting(contentEl)
 			.setName("Display name")
@@ -60,11 +50,12 @@ export class CommandEditorModal extends Modal {
 				.setPlaceholder("My command")
 				.setValue(this.command.name || "")
 				.onChange(value => {
+					this.isDirty = true;
 					this.command.name = value;
 				}));
 
 		// Template field
-		new Setting(contentEl)
+		const templateSetting = new Setting(contentEl)
 			.setName("Command template")
 			.setDesc("Command with placeholders (e.g., copilot -i <prompt>)")
 			.addTextArea(text => {
@@ -72,14 +63,16 @@ export class CommandEditorModal extends Modal {
 					.setPlaceholder('copilot -i <prompt>')
 					.setValue(this.command.template || "")
 					.onChange(value => {
+						this.isDirty = true;
 						this.command.template = value;
 					});
-				text.inputEl.rows = 3;
+				text.inputEl.rows = 4;
 				text.inputEl.setCssProps({ width: "100%" });
 			});
+		templateSetting.settingEl.addClass("ai-terminal-vertical-field");
 
 		// Default Prompt field
-		new Setting(contentEl)
+		const promptSetting = new Setting(contentEl)
 			.setName("Default prompt (optional)")
 			.setDesc("Default value for <prompt> placeholder")
 			.addTextArea(text => {
@@ -87,30 +80,66 @@ export class CommandEditorModal extends Modal {
 					.setPlaceholder("Fix issues in <file>")
 					.setValue(this.command.defaultPrompt || "")
 					.onChange(value => {
+						this.isDirty = true;
 						this.command.defaultPrompt = value;
 					});
-				text.inputEl.rows = 2;
+				text.inputEl.rows = 6;
 				text.inputEl.setCssProps({ width: "100%" });
 			});
+		promptSetting.settingEl.addClass("ai-terminal-vertical-field");
 
-		// Default Agent field
-		new Setting(contentEl)
-			.setName("Default agent (optional)")
-			.setDesc("Default value for <agent> placeholder")
-			.addText(text => text
-				.setPlaceholder("Agent name")
-				.setValue(this.command.defaultAgent || "")
-				.onChange(value => {
-					this.command.defaultAgent = value;
-				}));
+		// Agent selection
+		const enabledAgents = this.getEnabledAgents();
+		const currentAgent = this.command.agentName
+			? this.agents.find(agent => agent.name === this.command.agentName)
+			: undefined;
+		const isMissingAgent = !!this.command.agentName && !currentAgent;
+		const isDisabledAgent = !!currentAgent && !currentAgent.enabled;
 
-		// Enabled toggle
-		new Setting(contentEl)
-			.setName("Enabled")
-			.setDesc("Whether this command is active")
+		const agentSetting = new Setting(contentEl)
+			.setName("Agent")
+			.setDesc("Select the AI agent for this template")
+			.addDropdown(dropdown => {
+				if (isMissingAgent) {
+					dropdown.addOption(this.command.agentName || "", `[Deleted Agent] (${this.command.agentName})`);
+				} else if (isDisabledAgent) {
+					dropdown.addOption(this.command.agentName || "", `[Disabled Agent] ${currentAgent?.name ?? ""}`.trim());
+				}
+
+				enabledAgents.forEach(agent => {
+					dropdown.addOption(agent.name, agent.name);
+				});
+
+				const fallbackAgentName = enabledAgents[0]?.name ?? this.command.agentName ?? "";
+				if (!this.command.agentName && fallbackAgentName) {
+					this.command.agentName = fallbackAgentName;
+				}
+				dropdown.setValue(this.command.agentName || fallbackAgentName);
+				dropdown.setDisabled(enabledAgents.length === 0);
+				dropdown.onChange(value => {
+					this.isDirty = true;
+					this.command.agentName = value;
+				});
+			});
+
+		if (enabledAgents.length === 0) {
+			agentSetting.setDesc("Please configure at least one AI agent in settings.");
+		}
+		if (isMissingAgent) {
+			contentEl.createEl("p", {
+				text: "This template references a deleted agent. Please select a new agent.",
+				cls: "setting-item-description"
+			});
+		}
+
+	// enabled toggle
+	new Setting(contentEl)
+		.setName("Enabled")
+		.setDesc("Whether this command is active")
 			.addToggle(toggle => toggle
 				.setValue(this.command.enabled ?? true)
 				.onChange(value => {
+					this.isDirty = true;
 					this.command.enabled = value;
 				}));
 
@@ -129,7 +158,9 @@ export class CommandEditorModal extends Modal {
 		const buttonContainer = contentEl.createDiv({cls: "modal-button-container"});
 
 		const cancelButton = buttonContainer.createEl("button", {text: "Cancel"});
-		cancelButton.addEventListener("click", () => this.close());
+		cancelButton.addEventListener("click", () => {
+			void this.handleCloseRequest();
+		});
 
 		const saveButton = buttonContainer.createEl("button", {
 			text: "Save",
@@ -140,6 +171,47 @@ export class CommandEditorModal extends Modal {
 		});
 	}
 
+	private getEnabledAgents(): AgentConfig[] {
+		return this.agents.filter(agent => agent.enabled);
+	}
+
+	private shouldConfirmDiscard(): boolean {
+		return this.isDirty && !this.skipConfirmation;
+	}
+
+	private async handleCloseRequest(reopenOnCancel = false): Promise<void> {
+		if (!this.shouldConfirmDiscard()) {
+			this.skipConfirmation = true;
+			this.close();
+			return;
+		}
+
+		const shouldDiscard = await this.confirmDiscardChanges();
+		if (shouldDiscard) {
+			this.skipConfirmation = true;
+			this.close();
+			return;
+		}
+
+		if (reopenOnCancel) {
+			this.open();
+		}
+	}
+
+	private async confirmDiscardChanges(): Promise<boolean> {
+		return await new Promise(resolve => {
+			const modal = new ConfirmationModal(
+				this.app,
+				"Unsaved changes",
+				"You have unsaved changes. Are you sure you want to close without saving?",
+				"Close anyway",
+				() => resolve(true),
+				() => resolve(false)
+			);
+			modal.open();
+		});
+	}
+
 	async save() {
 		// Validation
 		if (!this.command.id || !this.command.name || !this.command.template) {
@@ -147,9 +219,16 @@ export class CommandEditorModal extends Modal {
 			return;
 		}
 
+		if (!this.command.agentName) {
+			new Notice("Please select an agent for this command.");
+			return;
+		}
+
 		try {
 			await this.onSave(this.command as CommandTemplate);
 			new Notice(`Command template ${this.isEdit ? "updated" : "created"} successfully`);
+			this.isDirty = false;
+			this.skipConfirmation = true;
 			this.close();
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
@@ -158,7 +237,71 @@ export class CommandEditorModal extends Modal {
 	}
 
 	onClose() {
+		if (this.shouldConfirmDiscard()) {
+			void this.handleCloseRequest(true);
+			return;
+		}
+
 		const {contentEl} = this;
 		contentEl.empty();
+	}
+}
+
+class ConfirmationModal extends Modal {
+	private titleText: string;
+	private message: string;
+	private confirmText: string;
+	private onConfirm: () => void;
+	private onCancel: () => void;
+	private didResolve = false;
+
+	constructor(
+		app: App,
+		titleText: string,
+		message: string,
+		confirmText: string,
+		onConfirm: () => void,
+		onCancel: () => void
+	) {
+		super(app);
+		this.titleText = titleText;
+		this.message = message;
+		this.confirmText = confirmText;
+		this.onConfirm = onConfirm;
+		this.onCancel = onCancel;
+	}
+
+	onOpen() {
+		const {contentEl} = this;
+		contentEl.empty();
+		contentEl.createEl("h2", {text: this.titleText});
+		contentEl.createEl("p", {text: this.message});
+
+		const buttonContainer = contentEl.createDiv({cls: "modal-button-container"});
+		const cancelButton = buttonContainer.createEl("button", {text: "Keep editing"});
+		cancelButton.addEventListener("click", () => {
+			this.didResolve = true;
+			this.onCancel();
+			this.close();
+		});
+
+		const confirmButton = buttonContainer.createEl("button", {
+			text: this.confirmText,
+			cls: "mod-warning"
+		});
+		confirmButton.addEventListener("click", () => {
+			this.didResolve = true;
+			this.onConfirm();
+			this.close();
+		});
+
+		cancelButton.focus();
+	}
+
+	onClose() {
+		if (!this.didResolve) {
+			this.onCancel();
+		}
+		this.contentEl.empty();
 	}
 }

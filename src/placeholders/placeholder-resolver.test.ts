@@ -138,7 +138,7 @@ describe("PlaceholderResolver", () => {
 		it("should resolve <agent> with default", () => {
 			const context: ExecutionContext = {vault: mockVault};
 			const result = resolver.resolve("<agent>", context, {
-				defaultAgent: "noctis"
+				agentCommand: "noctis"
 			});
 			expect(result).toContain("noctis");
 		});
@@ -182,7 +182,7 @@ describe("PlaceholderResolver", () => {
 			};
 			const template = 'copilot --agent <agent> -i <prompt>';
 			const result = resolver.resolve(template, context, {
-				defaultAgent: "obsidian-note-organizer",
+				agentCommand: "obsidian-note-organizer",
 				defaultPrompt: 'Review <file>'
 			});
 			expect(result).toContain("obsidian-note-organizer");
@@ -223,7 +223,7 @@ describe("PlaceholderResolver", () => {
 			};
 			const template = 'copilot --agent <agent> -i <prompt>';
 			const defaults = {
-				defaultAgent: "obsidian-note-organizer",
+				agentCommand: "obsidian-note-organizer",
 				defaultPrompt: "Review <file>\n- <vault>\n- <selection>"  // Actual newlines
 			};
 			const result = resolver.resolve(template, context, defaults);
@@ -246,7 +246,7 @@ describe("PlaceholderResolver", () => {
 			};
 			const template = 'copilot --agent <agent> -i <prompt>';
 			const defaults = {
-				defaultAgent: "obsidian-note-organizer",
+				agentCommand: "obsidian-note-organizer",
 				defaultPrompt: "Review <file>\n- <vault>\n- <selection>"
 			};
 			const result = resolver.resolveForPowerShell(template, context, defaults);
