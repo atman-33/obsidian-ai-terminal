@@ -127,15 +127,15 @@ export class CommandEditorModal extends Modal {
 		}
 		if (isMissingAgent) {
 			contentEl.createEl("p", {
-				text: "⚠️ This template references a deleted agent. Please select a new agent.",
+				text: "This template references a deleted agent. Please select a new agent.",
 				cls: "setting-item-description"
 			});
 		}
 
-		// Enabled toggle
-		new Setting(contentEl)
-			.setName("Enabled")
-			.setDesc("Whether this command is active")
+	// enabled toggle
+	new Setting(contentEl)
+		.setName("Enabled")
+		.setDesc("Whether this command is active")
 			.addToggle(toggle => toggle
 				.setValue(this.command.enabled ?? true)
 				.onChange(value => {

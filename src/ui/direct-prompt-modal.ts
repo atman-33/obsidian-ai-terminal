@@ -72,7 +72,7 @@ export class DirectPromptModal extends Modal {
 			.setDesc("Available placeholders: <file>, <path>, <relative-path>, <dir>, <vault>, <selection>")
 			.addTextArea(text => {
 				text
-					.setPlaceholder("Explain the context above...")
+					.setPlaceholder("Enter your prompt here...")
 					.setValue(this.promptText)
 					.onChange(value => {
 						this.promptText = value;
@@ -90,7 +90,10 @@ export class DirectPromptModal extends Modal {
 			text: "Execute",
 			cls: "mod-cta"
 		});
-		executeButton.disabled = enabledAgents.length === 0;
+		if (enabledAgents.length === 0) {
+			executeButton.disabled = true;
+			executeButton.title = "No enabled agents found. Please configure agents in settings.";
+		}
 		executeButton.addEventListener("click", () => {
 			void this.executePrompt(enabledAgents);
 		});

@@ -156,13 +156,13 @@
   - Test empty agent list handling
   - **Verify**: Modal logic tests pass
 
-- [ ] **6.3 Integration tests**
+- [x] **6.3 Integration tests**
   - Test full flow: right-click → dialog → execute → terminal launch
   - Test agent dropdown population in both modal and template editor
   - Test template execution with agent lookup
   - **Verify**: End-to-end flows work correctly
 
-- [ ] **6.4 Manual testing checklist**
+- [x] **6.4 Manual testing checklist**
   - Fresh install: verify default agents created
   - Upgrade: verify migration from old settings works
   - Add/edit/delete agents in settings
@@ -182,19 +182,19 @@
 
 ## Phase 7: Documentation & Polish
 
-- [ ] **7.1 Update README**
+- [x] **7.1 Update README**
   - Document new direct prompt feature
   - Add screenshots of dialog UI
   - Explain agent management in settings
   - **Verify**: README clearly explains new features
 
-- [ ] **7.2 Add user-facing help text**
+- [x] **7.2 Add user-facing help text**
   - Add helper text in settings for agent configuration
   - Add placeholder text in dialog prompt input
   - Add tooltip on disabled Execute button when no agents configured
   - **Verify**: UI provides helpful guidance
 
-- [ ] **7.3 Update changelog**
+- [x] **7.3 Update changelog**
   - Document breaking changes (agent migration)
   - List new features (direct prompt, agent management)
   - Note any API changes

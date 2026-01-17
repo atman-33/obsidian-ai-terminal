@@ -52,8 +52,8 @@ export default class AITerminalPlugin extends Plugin {
 		const enabledCommands = this.commandManager.getEnabledCommands();
 
 		this.addCommand({
-			id: "ai-terminal-direct-prompt",
-			name: "AI Terminal: Direct Prompt",
+			id: "direct-prompt",
+			name: "Direct prompt",
 			callback: () => {
 				const activeFile = this.app.workspace.getActiveFile();
 				this.openDirectPromptModal(activeFile ?? undefined, undefined);
@@ -115,7 +115,7 @@ export default class AITerminalPlugin extends Plugin {
 
 		menu.addItem(item => {
 			item
-				.setTitle("AI Terminal: Direct Prompt...")
+				.setTitle("Direct prompt...")
 				.setIcon("edit")
 				.onClick(() => {
 					menu.hide();

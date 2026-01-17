@@ -15,7 +15,7 @@ export class AgentListEditor {
 			.setHeading();
 
 		containerEl.createEl("p", {
-			text: "Configure available AI agents used by command templates and direct prompts.",
+			text: "Configure available AI agents used by command templates and direct prompts. Enabled agents will appear in the direct prompt dialog dropdown.",
 			cls: "setting-item-description"
 		});
 
@@ -191,13 +191,13 @@ class AgentEditorModal extends Modal {
 	onOpen() {
 		const {contentEl} = this;
 		contentEl.empty();
-		contentEl.createEl("h2", {text: this.isEdit ? "Edit Agent" : "New Agent"});
+		contentEl.createEl("h2", {text: this.isEdit ? "Edit agent" : "New agent"});
 
 		new Setting(contentEl)
 			.setName("Agent name")
 			.setDesc("Used for display and command")
 			.addText(text => text
-				.setPlaceholder("copilot")
+				.setPlaceholder("Copilot")
 				.setValue(this.agent.name)
 				.onChange(value => {
 					this.isDirty = true;
