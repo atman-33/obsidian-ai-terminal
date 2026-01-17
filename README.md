@@ -1,5 +1,7 @@
 # Obsidian AI Terminal
 
+![App Screenshot](images/screenshot.png)
+
 Launch external terminal sessions with AI agents (GitHub Copilot CLI or OpenCode) directly from Obsidian. Execute custom commands with context-aware placeholders from the command palette or context menus.
 
 ## Features

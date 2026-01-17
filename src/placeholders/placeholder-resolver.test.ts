@@ -247,17 +247,49 @@ describe("PlaceholderResolver", () => {
 			const template = 'copilot --agent <agent> -i <prompt>';
 			const defaults = {
 				agentCommand: "obsidian-note-organizer",
-				defaultPrompt: "Review <file>\n- <vault>\n- <selection>"
+				defaultPrompt: "Review \"<file>\"\n- \"<vault>\"\n- <selection>"
 			};
 			const result = resolver.resolveForPowerShell(template, context, defaults);
 			
-			expect(result).toContain("$aiPrompt = @'");
-			expect(result).toContain("$aiAgent = @'");
-			expect(result).toContain("$aiVault = @'");
-			expect(result).toContain("copilot --agent $aiAgent -i $aiPrompt");
+			expect(result).toContain("$aiPrompt = @\"");
+			expect(result).toContain("$aiAgent = @\"");
+			expect(result).toContain("$aiVault = @\"");
+			expect(result).toContain('copilot --agent $aiAgent -i "$aiPrompt"');
 			expect(result).toContain("Welcome.md");
 			expect(result).toContain("C:\\obsidian\\test");
+			expect(result).toContain("Review 'Welcome.md'");
+			expect(result).toContain("- 'C:\\obsidian\\test'");
 			expect(result).toContain("you're");
+		});
+
+		it("should avoid double quotes when template already wraps <prompt>", () => {
+			const context: ExecutionContext = {
+				vault: mockVault,
+				file: mockFile
+			};
+			const template = 'copilot --agent <agent> -i "<prompt>"';
+			const result = resolver.resolveForPowerShell(template, context, {
+				agentCommand: "obsidian-note-organizer",
+				defaultPrompt: "Review <file>"
+			});
+
+			expect(result).toContain('copilot --agent $aiAgent -i "$aiPrompt"');
+			// Should not double-quote the variable
+			expect(result).not.toContain('""$aiPrompt""');
+		});
+
+		it("should quote $aiPrompt when template uses variable directly", () => {
+			const context: ExecutionContext = {
+				vault: mockVault,
+				file: mockFile
+			};
+			const template = "copilot --agent <agent> -i $aiPrompt";
+			const result = resolver.resolveForPowerShell(template, context, {
+				agentCommand: "obsidian-note-organizer",
+				defaultPrompt: "Review <file>"
+			});
+
+			expect(result).toContain('copilot --agent $aiAgent -i "$aiPrompt"');
 		});
 	});
 
