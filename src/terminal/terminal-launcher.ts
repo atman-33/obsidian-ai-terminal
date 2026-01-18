@@ -1,6 +1,6 @@
 import {Notice} from "obsidian";
 import {PlatformType} from "../types";
-import {ChildProcess} from "child_process";
+import {resolveShellType} from "./shell-selector";
 
 // Use require for Node.js builtin to avoid import restrictions
 const {spawn} = require("child_process") as { spawn: typeof import("child_process").spawn };
@@ -18,7 +18,12 @@ export class TerminalLauncher {
 		workingDir: string
 	): Promise<void> {
 		try {
-			await this.launchWindowsTerminal(command, workingDir);
+			const platform = process.platform;
+			if (platform === "win32" && terminalType === "windows-terminal") {
+				await this.launchWindowsTerminal(command, workingDir);
+				return;
+			}
+			await this.launchPosixShell(terminalType, command, workingDir);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			new Notice(`Failed to launch terminal: ${message}`);
@@ -71,6 +76,32 @@ export class TerminalLauncher {
 		} catch {
 			throw new Error(`Windows Terminal not found. Please install Windows Terminal or use a different terminal type.`);
 		}
+	}
+
+	private async launchPosixShell(
+		terminalType: PlatformType,
+		command: string,
+		workingDir: string
+	): Promise<void> {
+		const platform = process.platform;
+		const shellType = resolveShellType(terminalType, platform);
+		const shell = terminalType === "bash"
+			? "bash"
+			: (platform === "win32" ? "powershell" : (process.env.SHELL || "sh"));
+		const args = shellType === "powershell"
+			? ["-NoExit", "-Command", command]
+			: ["-lc", command];
+
+		console.log("[AI Terminal] Launching shell command:");
+		console.log("  Shell:", shell);
+		console.log("  Working dir:", workingDir);
+		console.log("  Command:", command);
+
+		spawn(shell, args, {
+			cwd: workingDir,
+			detached: true,
+			stdio: "ignore"
+		}).unref();
 	}
 
 }

@@ -3,7 +3,7 @@ import { TFile, Vault } from "obsidian";
 /**
  * Supported terminal types for launching
  */
-export type PlatformType = "windows-terminal";
+export type PlatformType = "windows-terminal" | "bash" | "system-default";
 
 /**
  * Command template configuration for launching AI agents

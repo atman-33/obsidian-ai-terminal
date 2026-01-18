@@ -2,7 +2,7 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
 
 const launchSpy = vi.fn();
-const resolveForPowerShellSpy = vi.fn(() => "resolved-command");
+const resolveForShellSpy = vi.fn(() => "resolved-command");
 const getWorkingDirectorySpy = vi.fn(() => "/tmp");
 const requiresFileContextSpy = vi.fn(() => false);
 
@@ -15,7 +15,7 @@ vi.mock("../terminal/terminal-launcher", () => ({
 vi.mock("../placeholders/placeholder-resolver", () => ({
 	PlaceholderResolver: class {
 		constructor() {}
-		resolveForPowerShell = resolveForPowerShellSpy;
+		resolveForShell = resolveForShellSpy;
 		getWorkingDirectory = getWorkingDirectorySpy;
 		requiresFileContext = requiresFileContextSpy;
 	}
@@ -76,7 +76,7 @@ const flushPromises = async (): Promise<void> => {
 
 beforeEach(() => {
 	launchSpy.mockClear();
-	resolveForPowerShellSpy.mockClear();
+	resolveForShellSpy.mockClear();
 	getWorkingDirectorySpy.mockClear();
 	requiresFileContextSpy.mockClear();
 });
@@ -117,7 +117,7 @@ describe("integration command flow", () => {
 
 		await flushPromises();
 
-		expect(resolveForPowerShellSpy).toHaveBeenCalled();
+		expect(resolveForShellSpy).toHaveBeenCalled();
 		expect(launchSpy).toHaveBeenCalledWith(
 			plugin.settings.terminalType,
 			"resolved-command",
@@ -181,13 +181,15 @@ describe("integration command flow", () => {
 		const success = await executor.executeCommand(command, {prompt: "custom prompt"});
 
 		expect(success).toBe(true);
-		expect(resolveForPowerShellSpy).toHaveBeenCalledWith(
+		const expectedShell = process.platform === "win32" ? "powershell" : "bash";
+		expect(resolveForShellSpy).toHaveBeenCalledWith(
 			"opencode --agent <agent> -i <prompt>",
 			expect.objectContaining({agent: "ignis", prompt: "custom prompt"}),
 			expect.objectContaining({
 				defaultPrompt: "Review <file>",
 				agentCommand: "ignis"
-			})
+			}),
+			expectedShell
 		);
 		expect(launchSpy).toHaveBeenCalledWith(
 			plugin.settings.terminalType,

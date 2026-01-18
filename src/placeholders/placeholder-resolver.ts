@@ -9,40 +9,49 @@ export class PlaceholderResolver {
 	constructor(private contextCollector: ContextCollector) {}
 
 	/**
-	 * Resolve placeholders for PowerShell execution using here-strings and variables
-	 * This avoids argument splitting issues with quotes/newlines when invoking native commands.
+	 * Resolve placeholders for a specific shell with inline escaping.
+	 *
+	 * @param template Command template containing placeholders.
+	 * @param context Execution context data.
+	 * @param defaults Default prompt/agent fallback values.
+	 * @param shell Target shell for escaping rules.
+	 * @returns Resolved command string.
 	 */
-	resolveForPowerShell(
+	resolveForShell(
 		template: string,
 		context: ExecutionContext,
-		defaults: { defaultPrompt?: string; agentCommand?: string }
+		defaults: { defaultPrompt?: string; agentCommand?: string },
+		shell: "powershell" | "bash"
 	): string {
 		const rawValues = this.getRawPlaceholderValues(context);
+		const escape = shell === "powershell"
+			? this.escapeForPowerShell.bind(this)
+			: this.escapeForBash.bind(this);
 
-		// Build prompt/agent raw values (prompt may contain nested placeholders)
 		let promptValue = context.prompt || defaults.defaultPrompt || "";
 		promptValue = this.replacePlaceholdersWithValues(promptValue, rawValues);
-		// PowerShell here-strings should avoid double quotes inside the prompt
-		promptValue = promptValue.replace(/"/g, "'");
 		const agentValue = context.agent || defaults.agentCommand || "";
 
-		// Build command by substituting placeholders with PowerShell variables
-		const command = this.replacePlaceholdersWithVariables(template);
+		let resolved = template;
+		const replacements = [
+			{token: "<prompt>", value: promptValue},
+			{token: "<agent>", value: agentValue},
+			{token: "<file>", value: rawValues.file},
+			{token: "<path>", value: rawValues.path},
+			{token: "<relative-path>", value: rawValues.relativePath},
+			{token: "<dir>", value: rawValues.dir},
+			{token: "<vault>", value: rawValues.vault},
+			{token: "<selection>", value: rawValues.selection}
+		];
 
-		// Build PowerShell script with here-strings
-		const scriptLines = [
-			this.buildHereString("$aiPrompt", promptValue),
-			this.buildHereString("$aiAgent", agentValue),
-			this.buildHereString("$aiFile", rawValues.file),
-			this.buildHereString("$aiPath", rawValues.path),
-			this.buildHereString("$aiRelativePath", rawValues.relativePath),
-			this.buildHereString("$aiDir", rawValues.dir),
-			this.buildHereString("$aiVault", rawValues.vault),
-			this.buildHereString("$aiSelection", rawValues.selection),
-			command
-		].filter(line => line.length > 0);
+		replacements.forEach(({token, value}) => {
+			const escaped = escape(value);
+			resolved = resolved.split(`"${token}"`).join(escaped);
+			resolved = resolved.split(`'${token}'`).join(escaped);
+			resolved = resolved.split(token).join(escaped);
+		});
 
-		return scriptLines.join("\n");
+		return resolved;
 	}
 
 	/**
@@ -71,19 +80,6 @@ export class PlaceholderResolver {
 		resolved = this.resolveAllPlaceholders(resolved, context);
 
 		return resolved;
-	}
-
-	private buildHereString(variableName: string, value: string): string {
-		if (value === "") {
-			return `${variableName} = ''`;
-		}
-		// Use double-quoted here-string to avoid issues with '@' sequences
-		// Escape backticks, double quotes, and dollar signs for PowerShell
-		const escapedValue = value
-			.replace(/`/g, '``')
-			.replace(/"/g, '`"')
-			.replace(/\$/g, '`$');
-		return `${variableName} = @"\n${escapedValue}\n"@`;
 	}
 
 	private getRawPlaceholderValues(context: ExecutionContext): {
@@ -126,25 +122,6 @@ export class PlaceholderResolver {
 			.replace(/<dir>/g, values.dir)
 			.replace(/<vault>/g, values.vault)
 			.replace(/<selection>/g, values.selection);
-	}
-
-	private replacePlaceholdersWithVariables(text: string): string {
-		let resolved = text;
-
-		// Ensure prompt placeholder is always quoted, but avoid double-quoting
-		resolved = resolved.replace(/"<prompt>"/g, '"$aiPrompt"');
-		resolved = resolved.replace(/'<prompt>'/g, '"$aiPrompt"');
-		resolved = resolved.replace(/<prompt>/g, '"$aiPrompt"');
-		resolved = resolved.replace(/(?<!["'])\$aiPrompt(?!["'])/g, '"$aiPrompt"');
-
-		return resolved
-			.replace(/<agent>/g, "$aiAgent")
-			.replace(/<file>/g, "$aiFile")
-			.replace(/<path>/g, "$aiPath")
-			.replace(/<relative-path>/g, "$aiRelativePath")
-			.replace(/<dir>/g, "$aiDir")
-			.replace(/<vault>/g, "$aiVault")
-			.replace(/<selection>/g, "$aiSelection");
 	}
 
 	/**
@@ -197,6 +174,19 @@ export class PlaceholderResolver {
 		result = result.replace(/<dir>/g, this.escapeShell(dirPath));
 
 		return result;
+	}
+
+	private escapeForPowerShell(value: string): string {
+		const escaped = value
+			.replace(/"/g, '\\"')
+			.replace(/'/g, "''")
+			;
+		return `'${escaped}'`;
+	}
+
+	private escapeForBash(value: string): string {
+		const escaped = value.replace(/'/g, "'\\''");
+		return `'${escaped}'`;
 	}
 
 	/**
