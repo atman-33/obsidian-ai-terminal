@@ -273,5 +273,6 @@ export class DirectPromptModal extends Modal {
 		textarea.selectionStart = cursorPos;
 		textarea.selectionEnd = cursorPos;
 		textarea.focus();
+		this.updateExecuteButtonState(nextValue, this.getEnabledAgents());
 	}
 }

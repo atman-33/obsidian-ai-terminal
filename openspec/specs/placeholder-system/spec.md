@@ -102,6 +102,35 @@ The plugin MUST escape shell special characters in placeholder values to prevent
 **When** placeholder resolution occurs
 **Then** quotes should be properly escaped
 
+#### Scenario: Shell-specific escaping for PowerShell
+
+**Given** placeholder value contains double quotes and single quotes: `This is "test" and 'test'`
+**And** target shell is PowerShell
+**When** using shell-specific escaping (resolveForShell)
+**Then** the value should be wrapped in single quotes
+**And** double quotes should be escaped as `\"`
+**And** single quotes should be escaped as `''` (double single quote)
+**And** result should be: `'This is \"test\" and ''test'''`
+
+#### Scenario: Shell-specific escaping for Bash
+
+**Given** placeholder value contains double quotes and single quotes: `It's "me"`
+**And** target shell is Bash
+**When** using shell-specific escaping (resolveForShell)
+**Then** the value should be wrapped in single quotes
+**And** single quotes should be escaped as `'\''` (close quote, escaped quote, open quote)
+**And** double quotes should remain as-is within single quotes
+**And** result should be: `'It'\''s "me"'`
+
+#### Scenario: Avoid double quoting with pre-quoted placeholders
+
+**Given** command template already wraps placeholder in quotes: `copilot -i "<prompt>"`
+**And** placeholder value is `Hello world`
+**When** using shell-specific escaping
+**Then** the existing quotes in template should be removed
+**And** value should be escaped and wrapped once: `copilot -i 'Hello world'`
+**And** no double-quoting should occur
+
 ### Requirement: Handle unavailable placeholders gracefully
 
 The plugin MUST handle cases where placeholder values are unavailable.

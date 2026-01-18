@@ -237,59 +237,85 @@ describe("PlaceholderResolver", () => {
 		});
 	});
 
-	describe("resolveForPowerShell", () => {
-		it("should build PowerShell script with variables and here-strings", () => {
+	describe("resolveForShell", () => {
+		it("should escape prompt for PowerShell inline usage", () => {
 			const context: ExecutionContext = {
 				vault: mockVault,
-				file: mockFile,
-				selection: "When you're ready, delete this note."
+				prompt: "This is \"test\" and 'test'"
 			};
-			const template = 'copilot --agent <agent> -i <prompt>';
-			const defaults = {
-				agentCommand: "obsidian-note-organizer",
-				defaultPrompt: "Review \"<file>\"\n- \"<vault>\"\n- <selection>"
-			};
-			const result = resolver.resolveForPowerShell(template, context, defaults);
-			
-			expect(result).toContain("$aiPrompt = @\"");
-			expect(result).toContain("$aiAgent = @\"");
-			expect(result).toContain("$aiVault = @\"");
-			expect(result).toContain('copilot --agent $aiAgent -i "$aiPrompt"');
-			expect(result).toContain("Welcome.md");
-			expect(result).toContain("C:\\obsidian\\test");
-			expect(result).toContain("Review 'Welcome.md'");
-			expect(result).toContain("- 'C:\\obsidian\\test'");
-			expect(result).toContain("you're");
+			const template = "copilot -i <prompt>";
+			const result = resolver.resolveForShell(template, context, {}, "powershell");
+
+			expect(result).toBe("copilot -i 'This is \\\"test\\\" and ''test'''");
 		});
 
-		it("should avoid double quotes when template already wraps <prompt>", () => {
+		it("should avoid double quoting when template wraps <prompt> in double quotes for PowerShell", () => {
 			const context: ExecutionContext = {
 				vault: mockVault,
-				file: mockFile
+				prompt: "This is \"test\" and 'test'"
 			};
-			const template = 'copilot --agent <agent> -i "<prompt>"';
-			const result = resolver.resolveForPowerShell(template, context, {
-				agentCommand: "obsidian-note-organizer",
-				defaultPrompt: "Review <file>"
-			});
+			const template = 'copilot -i "<prompt>"';
+			const result = resolver.resolveForShell(template, context, {}, "powershell");
 
-			expect(result).toContain('copilot --agent $aiAgent -i "$aiPrompt"');
-			// Should not double-quote the variable
-			expect(result).not.toContain('""$aiPrompt""');
+			expect(result).toBe("copilot -i 'This is \\\"test\\\" and ''test'''");
 		});
 
-		it("should quote $aiPrompt when template uses variable directly", () => {
+		it("should escape prompt for Bash inline usage", () => {
 			const context: ExecutionContext = {
 				vault: mockVault,
-				file: mockFile
+				prompt: "It's \"me\""
 			};
-			const template = "copilot --agent <agent> -i $aiPrompt";
-			const result = resolver.resolveForPowerShell(template, context, {
-				agentCommand: "obsidian-note-organizer",
-				defaultPrompt: "Review <file>"
-			});
+			const template = "copilot -i <prompt>";
+			const result = resolver.resolveForShell(template, context, {}, "bash");
 
-			expect(result).toContain('copilot --agent $aiAgent -i "$aiPrompt"');
+			expect(result).toBe("copilot -i 'It'\\''s \"me\"'");
+		});
+
+		it("should avoid double quoting when template wraps <prompt> in single quotes for Bash", () => {
+			const context: ExecutionContext = {
+				vault: mockVault,
+				prompt: "It's \"me\""
+			};
+			const template = "copilot -i '<prompt>'";
+			const result = resolver.resolveForShell(template, context, {}, "bash");
+
+			expect(result).toBe("copilot -i 'It'\\''s \"me\"'");
+		});
+
+		it("should replace <prompt> with escaped string in both shells", () => {
+			const context: ExecutionContext = {
+				vault: mockVault,
+				prompt: "Hello"
+			};
+			const template = "copilot -i <prompt>";
+
+			const powerShellResult = resolver.resolveForShell(template, context, {}, "powershell");
+			const bashResult = resolver.resolveForShell(template, context, {}, "bash");
+
+			expect(powerShellResult).toBe("copilot -i 'Hello'");
+			expect(bashResult).toBe("copilot -i 'Hello'");
+		});
+
+		it("should avoid double quoting when template wraps <selection> in double quotes for PowerShell", () => {
+			const context: ExecutionContext = {
+				vault: mockVault,
+				selection: "It's \"ok\""
+			};
+			const template = 'copilot -i "<selection>"';
+			const result = resolver.resolveForShell(template, context, {}, "powershell");
+
+			expect(result).toBe("copilot -i 'It''s \\\"ok\\\"'");
+		});
+
+		it("should avoid double quoting when template wraps <selection> in single quotes for Bash", () => {
+			const context: ExecutionContext = {
+				vault: mockVault,
+				selection: "It's \"ok\""
+			};
+			const template = "copilot -i '<selection>'";
+			const result = resolver.resolveForShell(template, context, {}, "bash");
+
+			expect(result).toBe("copilot -i 'It'\\''s \"ok\"'");
 		});
 	});
 

@@ -515,3 +515,13 @@ The plugin MUST allow users to insert resolved placeholder values directly into 
 
 **And** no error should be shown to user
 
+#### Scenario: Update Execute button state after placeholder insertion
+
+**Given** Direct Prompt dialog is open with empty prompt
+**And** Execute button is disabled because prompt is blank
+**And** at least one agent is enabled
+**When** user clicks any placeholder link (e.g., `<file>`)
+**Then** placeholder value should be inserted into prompt textarea
+**And** Execute button should become enabled immediately
+**And** button state should update without requiring manual focus change
+

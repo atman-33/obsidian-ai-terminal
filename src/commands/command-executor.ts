@@ -4,6 +4,7 @@ import {CommandTemplate, ExecutionContext} from "../types";
 import {ContextCollector} from "../placeholders/context-collector";
 import {PlaceholderResolver} from "../placeholders/placeholder-resolver";
 import {TerminalLauncher} from "../terminal/terminal-launcher";
+import {resolveShellType} from "../terminal/shell-selector";
 
 /**
  * Orchestrates command execution
@@ -54,14 +55,15 @@ export class CommandExecutor {
 				agent: fullContext.agent
 			});
 
-			// Resolve placeholders (always use PowerShell script mode for Windows Terminal)
-			const resolvedCommand = this.placeholderResolver.resolveForPowerShell(
+			const shell = resolveShellType(this.plugin.settings.terminalType);
+			const resolvedCommand = this.placeholderResolver.resolveForShell(
 				command.template,
 				fullContext,
 				{
 					defaultPrompt: command.defaultPrompt,
 					agentCommand: agent.name
-				}
+				},
+				shell
 			);
 
 			console.log('[AI Terminal] Resolved command:', resolvedCommand);
