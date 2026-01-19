@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-01-19
+
 ### Changed
 - Move command/agent editor Save and Cancel buttons into a sticky header for easier access
 
@@ -19,7 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Better handling of shell-specific escaping scenarios for secure command execution
 
-[Unreleased]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.3...HEAD
+[Unreleased]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.4...HEAD
+[1.1.4]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.3...1.1.4
 [1.1.3]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.2...1.1.3
 
 ## [1.1.2] - 2026-01-18
