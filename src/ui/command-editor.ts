@@ -279,7 +279,7 @@ class ConfirmationModal extends Modal {
 		contentEl.createEl("p", {text: this.message});
 
 		const buttonContainer = contentEl.createDiv({cls: "modal-button-container"});
-		const cancelButton = buttonContainer.createEl("button", {text: "Keep Editing"});
+		const cancelButton = buttonContainer.createEl("button", {text: "Keep editing"});
 		cancelButton.addEventListener("click", () => {
 			this.didResolve = true;
 			this.onCancel();
