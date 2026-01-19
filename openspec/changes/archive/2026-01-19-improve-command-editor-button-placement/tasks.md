@@ -62,38 +62,38 @@ Implement sticky header with inline buttons for edit modals (Command Editor and 
 
 ### 3. Testing
 
-- [ ] Manual Testing - CommandEditorModal
-  - [ ] Open Edit Command Template modal
-  - [ ] Verify buttons appear next to title
-  - [ ] Enter long template and prompt text
-  - [ ] Scroll down and verify header stays at top
-  - [ ] Test Save button functionality
-  - [ ] Test Cancel button functionality
-  - [ ] Test unsaved changes warning dialog
-  - [ ] Test with different Obsidian themes
-- [ ] Manual Testing - AgentEditorModal
-  - [ ] Open Edit Agent modal
-  - [ ] Verify buttons appear next to title
-  - [ ] Test Save button functionality
-  - [ ] Test Cancel button functionality
-  - [ ] Test validation (duplicate name, empty name)
-  - [ ] Test with different Obsidian themes
-- [ ] Existing Tests
+- [x] Manual Testing - CommandEditorModal
+  - [x] Open Edit Command Template modal
+  - [x] Verify buttons appear next to title
+  - [x] Enter long template and prompt text
+  - [x] Scroll down and verify header stays at top
+  - [x] Test Save button functionality
+  - [x] Test Cancel button functionality
+  - [x] Test unsaved changes warning dialog
+  - [x] Test with different Obsidian themes
+- [x] Manual Testing - AgentEditorModal
+  - [x] Open Edit Agent modal
+  - [x] Verify buttons appear next to title
+  - [x] Test Save button functionality
+  - [x] Test Cancel button functionality
+  - [x] Test validation (duplicate name, empty name)
+  - [x] Test with different Obsidian themes
+- [x] Existing Tests
   - [x] Run existing test suite to ensure no regressions
   - [x] Verify all modal-related tests pass
 
 ## Verification
 
-- [ ] Visual inspection confirms buttons are in header (both modals)
-- [ ] Scrolling behavior keeps buttons visible (CommandEditorModal)
-- [ ] No functional regressions in save/cancel/validation
-- [ ] Consistent appearance across themes
-- [ ] UI pattern is identical between both modals
+- [x] Visual inspection confirms buttons are in header (both modals)
+- [x] Scrolling behavior keeps buttons visible (CommandEditorModal)
+- [x] No functional regressions in save/cancel/validation
+- [x] Consistent appearance across themes
+- [x] UI pattern is identical between both modals
 
 ## Documentation
 
 - [x] Update CHANGELOG.md with improvement description
-- [ ] No user-facing documentation changes needed (UX improvement is self-explanatory)
+- [x] No user-facing documentation changes needed (UX improvement is self-explanatory)
 
 ## Success Criteria
 
