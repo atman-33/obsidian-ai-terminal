@@ -21,18 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Better handling of shell-specific escaping scenarios for secure command execution
 
-[Unreleased]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.4...HEAD
-[1.1.4]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.3...1.1.4
-[1.1.3]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.2...1.1.3
-
 ## [1.1.2] - 2026-01-18
 
 ### Fixed
 - Improved plugin initialization error handling and recovery
 - Enhanced validation for command template configurations
 - Better error messages for agent setup failures
-
-[1.1.2]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.1...1.1.2
 
 ## [1.1.1] - 2026-01-17
 
@@ -72,6 +66,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Secure placeholder value sanitization
 - Shell argument escaping for file paths
 
+[Unreleased]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.4...HEAD
+[1.1.4]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.3...1.1.4
+[1.1.3]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.2...1.1.3
+[1.1.2]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.1...1.1.2
 [1.1.1]: https://github.com/atman-33/obsidian-ai-terminal/releases/tag/1.1.1
 [1.1.0]: https://github.com/atman-33/obsidian-ai-terminal/releases/tag/1.1.0
 [1.0.0]: https://github.com/atman-33/obsidian-ai-terminal/releases/tag/1.0.0

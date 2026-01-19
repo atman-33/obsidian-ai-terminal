@@ -115,39 +115,7 @@ python3 scripts/build_plugin.py
 python3 scripts/create_release.py 1.1.0 --publish
 ```
 
-### Pattern 3: Manual Step-by-Step
-
-For maximum control, use individual scripts:
-
-```bash
-# 1. Check current state
-python3 scripts/check_versions.py
-
-# 2. Bump version
-python3 scripts/bump_version.py minor
-
-# 3. Update CHANGELOG
-python3 scripts/update_changelog.py update 1.1.0 owner/repo
-
-# 4. Edit CHANGELOG.md manually
-
-# 5. Build
-python3 scripts/build_plugin.py
-
-# 6. Commit and push
-git add .
-git commit -m "chore: prepare for v1.1.0 release"
-git push
-
-# 7. Create PR
-python3 scripts/create_pr.py feature/branch main 1.1.0
-
-# 8. After PR merge, create release
-git checkout main
-git pull
-python3 scripts/build_plugin.py
-python3 scripts/create_release.py 1.1.0
-```
+**Note:** For manual step-by-step control, use individual scripts documented in "Script Reference" section below.
 
 ## Script Reference
 
@@ -226,10 +194,35 @@ python3 scripts/update_changelog.py create 1.0.0 owner/repo
 python3 scripts/update_changelog.py update 1.1.0 owner/repo
 ```
 
+**Generated Structure:**
+The script follows Keep a Changelog format with these requirements:
+
+```markdown
+## [Unreleased]
+
+## [1.1.0] - 2026-01-17
+### Added
+- New feature
+
+## [1.0.0] - 2026-01-16
+### Added
+- Initial release
+
+[Unreleased]: https://github.com/owner/repo/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/owner/repo/compare/1.0.0...1.1.0
+[1.0.0]: https://github.com/owner/repo/releases/tag/1.0.0
+```
+
+**⚠️ CRITICAL: Link Definition Placement**
+- ALL link definitions MUST be placed at the end of the file
+- Do NOT place links between version sections
+- Keep all `[version]:` definitions together at the bottom
+
 **Notes:**
 - Always leaves TODO markers for manual editing
 - Automatically extracts previous version for comparison links
 - Follows Keep a Changelog format
+- Verify link definitions remain at file end after manual edits
 
 ### create_pr.py
 
@@ -269,15 +262,38 @@ Creates GitHub Release with build artifacts.
 - Creates draft by default (use `--publish` to publish immediately)
 - Uses tag without 'v' prefix (Obsidian requirement)
 
+**CHANGELOG Integration:**
+- Extracts content from version section: `## [X.Y.Z] - YYYY-MM-DD`
+- Includes subsections: `### Added`, `### Changed`, `### Fixed`, etc.
+- Automatically appends installation instructions
+- Link definitions at file end are excluded from extraction
+
+**Generated Release Example:**
+```
+Tag: 1.1.4
+Title: Release 1.1.4
+Assets: main.js, manifest.json, styles.css
+
+Notes:
+## Changed
+- Move command/agent editor Save and Cancel buttons into a sticky header
+
+## Installation
+### Manual Installation
+1. Download main.js, manifest.json, and styles.css
+2. Place in: <VaultFolder>/.obsidian/plugins/<plugin-id>/
+3. Restart Obsidian and enable the plugin
+```
+
 **Usage:**
 ```bash
-# Create draft release
+# Create draft release (recommended)
 python3 scripts/create_release.py 1.0.0
 
 # Create and publish immediately
 python3 scripts/create_release.py 1.0.0 --publish
 
-# Publish draft later
+# Publish draft later via gh CLI
 gh release edit 1.0.0 --draft=false
 ```
 
@@ -368,47 +384,59 @@ Verify installation:
 npm --version
 ```
 
-## Workflow Customization
+### "CHANGELOG format issues"
 
-### Custom Commit Messages
+**Problem: Link definitions scattered between version sections**
 
-Edit `release_workflow.py` or use manual git commands:
-```bash
-git commit -m "chore: release v1.0.0 with new features"
+Symptoms:
+- Links appear between `## [version]` headers
+- Multiple groups of link definitions throughout file
+
+Solution:
+1. Locate ALL `[version]:` link definitions in the file
+2. Cut them from their current locations
+3. Paste ALL of them at the very end of the file
+4. Ensure they're in reverse chronological order (newest first)
+
+Correct structure:
+```markdown
+## [1.1.0] - 2026-01-17
+...
+
+## [1.0.0] - 2026-01-16
+...
+
+[Unreleased]: https://github.com/.../compare/1.1.0...HEAD
+[1.1.0]: https://github.com/.../compare/1.0.0...1.1.0
+[1.0.0]: https://github.com/.../releases/tag/1.0.0
 ```
 
-### Custom Release Notes
+**Problem: Release notes not extracted by create_release.py**
 
-Edit CHANGELOG.md directly before running `create_release.py`. The script extracts the relevant version section automatically.
+Cause: CHANGELOG structure doesn't match expected format
 
-### Skip CHANGELOG
-
-If you don't want CHANGELOG.md, skip `update_changelog.py` entirely. Use GitHub Release notes directly.
-
-### Different Branch Names
-
-All scripts accept custom branch names:
-```bash
-python3 scripts/create_pr.py develop main 1.0.0
-```
+Solution:
+- Verify version section exists: `## [X.Y.Z] - YYYY-MM-DD`
+- Check that content is properly categorized under `### Added`, `### Changed`, etc.
+- Ensure no malformed markdown between version header and content
 
 ## Best Practices
 
 1. **Always use interactive workflow for first release** - Reduces chance of errors
 2. **Edit CHANGELOG before committing** - Don't leave TODO markers in commits
-3. **Build on main branch before release** - Ensures artifacts match published code
-4. **Create draft releases first** - Review before making public
-5. **Test manually before publishing** - Install plugin locally and verify functionality
-6. **Use semantic versioning correctly**:
+3. **Validate CHANGELOG structure before committing**:
+   - ALL link definitions `[version]:` are at the file end (not scattered between sections)
+   - Comparison URLs follow correct pattern: `compare/old...new`
+   - `[Unreleased]` compares latest version to HEAD
+   - No orphaned or duplicate link definitions
+4. **Build on main branch before release** - Ensures artifacts match published code
+5. **Create draft releases first** - Review before making public
+6. **Test manually before publishing** - Install plugin locally and verify functionality
+7. **Use semantic versioning correctly**:
    - Patch: Bug fixes only
    - Minor: New features, backward compatible
    - Major: Breaking changes
-
-## Integration with Other Skills
-
-- **obsidian-plugin-deploy**: Use for development testing; this skill for production releases
-- **serena-skills**: Use for code analysis before releases
-- **git workflows**: This skill integrates with standard git workflows
+8. **Customize commit messages and branch names** as needed - all scripts accept parameters
 
 ## Example: Complete First Release
 
@@ -436,39 +464,3 @@ python3 .claude/skills/obsidian-plugin-release/scripts/create_release.py 1.0.0
 
 # Done! Plugin is now released and BRAT-compatible
 ```
-
-
-### scripts/
-Executable code (Python/Bash/etc.) that can be run directly to perform specific operations.
-
-**Examples from other skills:**
-- PDF skill: `fill_fillable_fields.py`, `extract_form_field_info.py` - utilities for PDF manipulation
-- DOCX skill: `document.py`, `utilities.py` - Python modules for document processing
-
-**Appropriate for:** Python scripts, shell scripts, or any executable code that performs automation, data processing, or specific operations.
-
-**Note:** Scripts may be executed without loading into context, but can still be read by Codex for patching or environment adjustments.
-
-### references/
-Documentation and reference material intended to be loaded into context to inform Codex's process and thinking.
-
-**Examples from other skills:**
-- Product management: `communication.md`, `context_building.md` - detailed workflow guides
-- BigQuery: API reference documentation and query examples
-- Finance: Schema documentation, company policies
-
-**Appropriate for:** In-depth documentation, API references, database schemas, comprehensive guides, or any detailed information that Codex should reference while working.
-
-### assets/
-Files not intended to be loaded into context, but rather used within the output Codex produces.
-
-**Examples from other skills:**
-- Brand styling: PowerPoint template files (.pptx), logo files
-- Frontend builder: HTML/React boilerplate project directories
-- Typography: Font files (.ttf, .woff2)
-
-**Appropriate for:** Templates, boilerplate code, document templates, images, icons, fonts, or any files meant to be copied or used in the final output.
-
----
-
-**Not every skill requires all three types of resources.**
