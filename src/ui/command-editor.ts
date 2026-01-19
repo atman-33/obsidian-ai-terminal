@@ -40,7 +40,23 @@ export class CommandEditorModal extends Modal {
 		const {contentEl} = this;
 		
 		contentEl.empty();
-		contentEl.createEl("h2", {text: this.isEdit ? "Edit Command Template" : "New Command Template"});
+
+		const headerEl = contentEl.createDiv({cls: "ai-terminal-modal-header"});
+		headerEl.createEl("h2", {text: this.isEdit ? "Edit Command Template" : "New Command Template"});
+		const headerButtonContainer = headerEl.createDiv({cls: "ai-terminal-header-buttons"});
+
+		const cancelButton = headerButtonContainer.createEl("button", {text: "Cancel"});
+		cancelButton.addEventListener("click", () => {
+			void this.handleCloseRequest();
+		});
+
+		const saveButton = headerButtonContainer.createEl("button", {
+			text: "Save",
+			cls: "mod-cta"
+		});
+		saveButton.addEventListener("click", () => {
+			void this.save();
+		});
 
 		// Name field
 		new Setting(contentEl)
@@ -132,10 +148,10 @@ export class CommandEditorModal extends Modal {
 			});
 		}
 
-	// enabled toggle
-	new Setting(contentEl)
-		.setName("Enabled")
-		.setDesc("Whether this command is active")
+		// enabled toggle
+		new Setting(contentEl)
+			.setName("Enabled")
+			.setDesc("Whether this command is active")
 			.addToggle(toggle => toggle
 				.setValue(this.command.enabled ?? true)
 				.onChange(value => {
@@ -147,28 +163,13 @@ export class CommandEditorModal extends Modal {
 		const referenceEl = contentEl.createDiv({cls: "ai-terminal-placeholder-reference"});
 		referenceEl.createEl("h4", {text: "Available placeholders"});
 		const list = referenceEl.createEl("ul");
-		
+
 		AVAILABLE_PLACEHOLDERS.forEach(placeholder => {
 			const item = list.createEl("li");
 			item.createEl("code", {text: `<${placeholder.name}>`});
 			item.appendText(`: ${placeholder.description}`);
 		});
 
-		// Buttons
-		const buttonContainer = contentEl.createDiv({cls: "modal-button-container"});
-
-		const cancelButton = buttonContainer.createEl("button", {text: "Cancel"});
-		cancelButton.addEventListener("click", () => {
-			void this.handleCloseRequest();
-		});
-
-		const saveButton = buttonContainer.createEl("button", {
-			text: "Save",
-			cls: "mod-cta"
-		});
-		saveButton.addEventListener("click", () => {
-			void this.save();
-		});
 	}
 
 	private getEnabledAgents(): AgentConfig[] {
@@ -204,7 +205,7 @@ export class CommandEditorModal extends Modal {
 				this.app,
 				"Unsaved changes",
 				"You have unsaved changes. Are you sure you want to close without saving?",
-				"Close anyway",
+				"Close Anyway",
 				() => resolve(true),
 				() => resolve(false)
 			);
@@ -278,7 +279,7 @@ class ConfirmationModal extends Modal {
 		contentEl.createEl("p", {text: this.message});
 
 		const buttonContainer = contentEl.createDiv({cls: "modal-button-container"});
-		const cancelButton = buttonContainer.createEl("button", {text: "Keep editing"});
+		const cancelButton = buttonContainer.createEl("button", {text: "Keep Editing"});
 		cancelButton.addEventListener("click", () => {
 			this.didResolve = true;
 			this.onCancel();

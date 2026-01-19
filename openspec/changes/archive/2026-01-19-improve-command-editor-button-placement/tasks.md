@@ -6,8 +6,8 @@ Implement sticky header with inline buttons for edit modals (Command Editor and 
 
 ## Prerequisites
 
-- [ ] Review [command-template-editor-ux spec](../../specs/command-template-editor-ux/spec.md)
-- [ ] Understand current modal implementations
+- [x] Review [command-template-editor-ux spec](../../specs/command-template-editor-ux/spec.md)
+- [x] Understand current modal implementations
   - [src/ui/command-editor.ts](src/ui/command-editor.ts) - CommandEditorModal
   - [src/ui/agent-list-editor.ts](src/ui/agent-list-editor.ts) - AgentEditorModal
 
@@ -19,14 +19,14 @@ Implement sticky header with inline buttons for edit modals (Command Editor and 
 
 **File**: [src/ui/command-editor.ts](src/ui/command-editor.ts)
 
-- [ ] Create header container instead of standalone title
+- [x] Create header container instead of standalone title
   - Create `<div class="ai-terminal-modal-header">`
   - Move `<h2>` title into header container
   - Create button container within header
-- [ ] Move Cancel and Save button creation to header
+- [x] Move Cancel and Save button creation to header
   - Move button creation code from bottom to header
   - Keep all event handlers and logic unchanged
-- [ ] Remove bottom button container
+- [x] Remove bottom button container
   - Delete `modal-button-container` div creation at the bottom
   - Ensure no orphaned button-related code remains
 
@@ -34,14 +34,14 @@ Implement sticky header with inline buttons for edit modals (Command Editor and 
 
 **File**: [src/ui/agent-list-editor.ts](src/ui/agent-list-editor.ts)
 
-- [ ] Create header container instead of standalone title
+- [x] Create header container instead of standalone title
   - Create `<div class="ai-terminal-modal-header">`
   - Move `<h2>` title into header container
   - Create button container within header
-- [ ] Move Cancel and Save button creation to header
+- [x] Move Cancel and Save button creation to header
   - Move button creation code from bottom to header
   - Keep all event handlers and logic unchanged
-- [ ] Remove bottom button container
+- [x] Remove bottom button container
   - Delete `modal-button-container` div creation at the bottom
   - Ensure no orphaned button-related code remains
 
@@ -49,13 +49,13 @@ Implement sticky header with inline buttons for edit modals (Command Editor and 
 
 **File**: [styles.css](styles.css)
 
-- [ ] Add sticky header styles
+- [x] Add sticky header styles
   - `.ai-terminal-modal-header` with flexbox layout
   - `position: sticky; top: 0;` for scroll behavior
   - Background color using CSS variables
   - Border and padding for visual separation
   - Z-index to ensure proper layering
-- [ ] Add header button container styles
+- [x] Add header button container styles
   - `.ai-terminal-header-buttons` with flex layout
   - Gap between buttons
   - Alignment settings
@@ -79,8 +79,8 @@ Implement sticky header with inline buttons for edit modals (Command Editor and 
   - [ ] Test validation (duplicate name, empty name)
   - [ ] Test with different Obsidian themes
 - [ ] Existing Tests
-  - [ ] Run existing test suite to ensure no regressions
-  - [ ] Verify all modal-related tests pass
+  - [x] Run existing test suite to ensure no regressions
+  - [x] Verify all modal-related tests pass
 
 ## Verification
 
@@ -92,7 +92,7 @@ Implement sticky header with inline buttons for edit modals (Command Editor and 
 
 ## Documentation
 
-- [ ] Update CHANGELOG.md with improvement description
+- [x] Update CHANGELOG.md with improvement description
 - [ ] No user-facing documentation changes needed (UX improvement is self-explanatory)
 
 ## Success Criteria

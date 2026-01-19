@@ -65,6 +65,26 @@ AI Terminal Plugin Styles
 	resize: vertical;
 }
 
+/* Sticky modal header for editor modals */
+.ai-terminal-modal-header {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	background-color: var(--background-primary);
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding-bottom: 16px;
+	margin-bottom: 16px;
+}
+
+.ai-terminal-header-buttons {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
 /* Modal button container */
 .modal-button-container {
 	display: flex;
