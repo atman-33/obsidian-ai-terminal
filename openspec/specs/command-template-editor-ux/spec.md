@@ -92,3 +92,21 @@ The command template editor MUST use vertical layout (label/description above, i
 
 ---
 
+### Requirement: Edit buttons in sticky header
+
+The editor modal MUST provide consistent access to primary action buttons (Save, Cancel) regardless of scroll position.
+
+#### Scenario: Buttons located in header
+
+**Given** user opens the command template editor
+**When** the modal appears
+**Then** the Save and Cancel buttons MUST be located in the modal header
+**And** buttons MUST be positioned to the right of the modal title
+
+#### Scenario: Header remains visible while scrolling
+
+**Given** user has a command template with long content requiring scrolling
+**When** user scrolls down the modal content
+**Then** the header containing the title and buttons MUST remain fixed (sticky) at the top
+**And** buttons MUST remain clickable at all times
+

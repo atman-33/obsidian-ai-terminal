@@ -165,7 +165,7 @@ export class AgentListEditor {
 	}
 }
 
-class AgentEditorModal extends Modal {
+export class AgentEditorModal extends Modal {
 	private agent: AgentConfig;
 	private isEdit: boolean;
 	private onSave: (agent: AgentConfig) => Promise<void>;
@@ -191,7 +191,21 @@ class AgentEditorModal extends Modal {
 	onOpen() {
 		const {contentEl} = this;
 		contentEl.empty();
-		contentEl.createEl("h2", {text: this.isEdit ? "Edit agent" : "New agent"});
+
+		const headerEl = contentEl.createDiv({cls: "ai-terminal-modal-header"});
+		headerEl.createEl("h2", {text: this.isEdit ? "Edit agent" : "New agent"});
+		const headerButtonContainer = headerEl.createDiv({cls: "ai-terminal-header-buttons"});
+
+		const cancelButton = headerButtonContainer.createEl("button", {text: "Cancel"});
+		cancelButton.addEventListener("click", () => this.close());
+
+		const saveButton = headerButtonContainer.createEl("button", {
+			text: "Save",
+			cls: "mod-cta"
+		});
+		saveButton.addEventListener("click", () => {
+			void this.save();
+		});
 
 		new Setting(contentEl)
 			.setName("Agent name")
@@ -204,17 +218,6 @@ class AgentEditorModal extends Modal {
 					this.agent.name = value;
 				}));
 
-		const buttonContainer = contentEl.createDiv({cls: "modal-button-container"});
-		const cancelButton = buttonContainer.createEl("button", {text: "Cancel"});
-		cancelButton.addEventListener("click", () => this.close());
-
-		const saveButton = buttonContainer.createEl("button", {
-			text: "Save",
-			cls: "mod-cta"
-		});
-		saveButton.addEventListener("click", () => {
-			void this.save();
-		});
 	}
 
 	private validateAgent(): string | null {
