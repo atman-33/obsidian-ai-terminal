@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-01-22
+
+### Changed
+- Stable release of UUID-based agent identification (v1.2.0)
+- No functional changes from v1.2.0
+
 ## [1.2.0] - 2026-01-22
 
 ### Changed
@@ -71,7 +77,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Secure placeholder value sanitization
 - Shell argument escaping for file paths
 
-[Unreleased]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.4...HEAD
+[Unreleased]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.3.0...HEAD
+[1.3.0]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.2.0...1.3.0
+[1.2.0]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.4...1.2.0
 [1.1.4]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.3...1.1.4
 [1.1.3]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.2...1.1.3
 [1.1.2]: https://github.com/atman-33/obsidian-ai-terminal/compare/1.1.1...1.1.2
