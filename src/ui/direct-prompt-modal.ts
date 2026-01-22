@@ -1,15 +1,15 @@
 import {App, Modal, Notice, Setting, TFile} from "obsidian";
 import AITerminalPlugin from "../main";
-import {AgentConfig, CommandTemplate} from "../types";
+import {AgentConfig} from "../types";
 import {CommandExecutor} from "../commands/command-executor";
 import {ContextCollector} from "../placeholders/context-collector";
-import {buildDirectPromptCommand} from "./direct-prompt-utils";
+import {createDirectPromptCommand} from "./direct-prompt-utils";
 
 export class DirectPromptModal extends Modal {
 	private commandExecutor: CommandExecutor;
 	private contextCollector: ContextCollector;
 	private commandTemplate = "";
-	private selectedAgentName = "";
+	private selectedAgentId = "";
 	private promptText = "";
 	private promptTextArea?: HTMLTextAreaElement;
 	private selectedText?: string;
@@ -36,7 +36,10 @@ export class DirectPromptModal extends Modal {
 		this.promptText = this.getInitialPromptText();
 
 		const enabledAgents = this.getEnabledAgents();
-		this.selectedAgentName = this.plugin.settings.lastUsedDirectPromptAgent ?? enabledAgents[0]?.name ?? "";
+		this.selectedAgentId = this.plugin.settings.lastUsedDirectPromptAgentId ?? enabledAgents[0]?.id ?? "";
+		if (this.selectedAgentId && !enabledAgents.some(agent => agent.id === this.selectedAgentId)) {
+			this.selectedAgentId = enabledAgents[0]?.id ?? "";
+		}
 
 		// Command template field
 		const commandSetting = new Setting(contentEl)
@@ -58,12 +61,12 @@ export class DirectPromptModal extends Modal {
 			.setDesc("Select an AI agent to use for this prompt")
 			.addDropdown(dropdown => {
 				enabledAgents.forEach(agent => {
-					dropdown.addOption(agent.name, agent.name);
+					dropdown.addOption(agent.id, agent.name);
 				});
-				dropdown.setValue(this.selectedAgentName);
+				dropdown.setValue(this.selectedAgentId);
 				dropdown.setDisabled(enabledAgents.length === 0);
 				dropdown.onChange(value => {
-					this.selectedAgentName = value;
+					this.selectedAgentId = value;
 				});
 			});
 
@@ -162,28 +165,20 @@ export class DirectPromptModal extends Modal {
 	}
 
 	private async executePrompt(enabledAgents: AgentConfig[]): Promise<void> {
-		const agent = enabledAgents.find(current => current.name === this.selectedAgentName);
+		const agent = enabledAgents.find(current => current.id === this.selectedAgentId);
 		if (!agent) {
 			new Notice("Please configure at least one AI agent in settings.");
 			return;
 		}
 
-		const {template, promptValue} = buildDirectPromptCommand(
+		const {command: directCommand, promptValue} = createDirectPromptCommand(
 			this.commandTemplate,
+			agent.id,
 			agent.name,
 			this.promptText
 		);
 
 		await this.persistDirectPromptSettings();
-
-		const directCommand: CommandTemplate = {
-			id: "direct-prompt",
-			name: "Direct Prompt",
-			template,
-			defaultPrompt: promptValue,
-			agentName: agent.name,
-			enabled: true
-		};
 
 		const success = await this.commandExecutor.executeCommand(directCommand, {
 			file: this.file,
@@ -198,7 +193,7 @@ export class DirectPromptModal extends Modal {
 
 	private async persistDirectPromptSettings(): Promise<void> {
 		this.plugin.settings.lastUsedDirectPromptCommand = this.commandTemplate;
-		this.plugin.settings.lastUsedDirectPromptAgent = this.selectedAgentName;
+		this.plugin.settings.lastUsedDirectPromptAgentId = this.selectedAgentId;
 		if (this.plugin.settings.rememberLastPrompt) {
 			this.plugin.settings.lastSavedPrompt = this.promptText;
 		}

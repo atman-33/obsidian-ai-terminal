@@ -27,7 +27,7 @@ describe("editor modal headers", () => {
 	});
 
 	it("renders sticky header buttons in the command editor modal", () => {
-		const agents: AgentConfig[] = [{name: "noctis", enabled: true}];
+		const agents: AgentConfig[] = [{id: "00000000-0000-4000-8000-000000000010", name: "noctis", enabled: true}];
 		const modal = new CommandEditorModal(new App(), null, agents, async () => {});
 		modal.open();
 

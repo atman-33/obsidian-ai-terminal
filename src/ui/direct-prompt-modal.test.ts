@@ -18,7 +18,7 @@ const createPlugin = () => {
 		getBasePath: () => "/vault"
 	};
 	const settings = createDefaultSettings();
-	settings.agents = [{name: "Build", enabled: true}];
+	settings.agents = [{id: "00000000-0000-4000-8000-000000000001", name: "Build", enabled: true}];
 	return {
 		app,
 		settings,
@@ -73,11 +73,13 @@ describe("DirectPromptModal", () => {
 
 		const modal = new DirectPromptModal(plugin.app, plugin as any);
 		(modal as any).promptText = "Fix the bug";
-		(modal as any).selectedAgentName = "Build";
+		(modal as any).selectedAgentId = "00000000-0000-4000-8000-000000000001";
 		(modal as any).commandTemplate = "<agent> -i <prompt>";
 		(modal as any).commandExecutor = { executeCommand: vi.fn(async () => true) };
 
-		await (modal as any).executePrompt([{name: "Build", enabled: true}]);
+		await (modal as any).executePrompt([
+			{id: "00000000-0000-4000-8000-000000000001", name: "Build", enabled: true}
+		]);
 
 		expect(plugin.settings.lastSavedPrompt).toBe("Fix the bug");
 		expect(plugin.saveSettings).toHaveBeenCalledTimes(1);

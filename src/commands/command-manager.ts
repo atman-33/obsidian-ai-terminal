@@ -31,7 +31,7 @@ export class CommandManager {
 		}
 
 		// Validate template
-		this.validateTemplate(command.template, command.agentName);
+		this.validateTemplate(command.template, command.agentId);
 
 		this.plugin.settings.commands.push(command);
 		await this.plugin.saveSettings();
@@ -57,13 +57,13 @@ export class CommandManager {
 			template: updates.template ?? current.template,
 			enabled: updates.enabled ?? current.enabled,
 			defaultPrompt: updates.defaultPrompt ?? current.defaultPrompt,
-			agentName: updates.agentName ?? current.agentName,
+			agentId: updates.agentId ?? current.agentId,
 			platform: updates.platform ?? current.platform
 		};
 		
 		// Validate template if changed
-		if (updates.template || updates.agentName) {
-			this.validateTemplate(updated.template, updated.agentName);
+		if (updates.template || updates.agentId) {
+			this.validateTemplate(updated.template, updated.agentId);
 		}
 
 		this.plugin.settings.commands[index] = updated;
@@ -135,15 +135,15 @@ export class CommandManager {
 	/**
 	 * Validate command template syntax
 	 */
-	validateTemplate(template: string, agentName?: string): void {
+	validateTemplate(template: string, agentId?: string): void {
 		// Validate agent reference
-		if (!agentName) {
-			throw new Error("Selected agent no longer exists. Please choose another agent.");
+		if (!agentId) {
+			throw new Error("Agent ID is required.");
 		}
 
-		const agentExists = this.plugin.settings.agents.some(agent => agent.name === agentName);
+		const agentExists = this.plugin.settings.agents.some(agent => agent.id === agentId);
 		if (!agentExists) {
-			throw new Error("Selected agent no longer exists. Please choose another agent.");
+			throw new Error(`Agent with ID "${agentId}" not found.`);
 		}
 
 		// Extract placeholders from template

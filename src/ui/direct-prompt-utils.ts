@@ -1,3 +1,5 @@
+import {CommandTemplate} from "../types";
+
 export const MAX_SELECTION_PREVIEW = 200;
 
 export function truncateSelection(selection: string | undefined): string {
@@ -30,19 +32,27 @@ export function buildContextDisplay(
 	};
 }
 
-export function buildDirectPromptCommand(
+export function createDirectPromptCommand(
 	commandTemplate: string,
-	agentName: string,
+	agentId: string,
+	agentLabel: string,
 	userPrompt: string
-): { template: string; promptValue: string } {
+): { command: CommandTemplate; promptValue: string } {
 	// Use the provided command template, replacing <agent> placeholder if present
-	const template = commandTemplate.replace(/<agent>/g, agentName);
-	
+	const template = commandTemplate.replace(/<agent>/g, agentLabel);
+
 	// User prompt is used as-is (may contain placeholders like <file>, <selection>)
 	const promptValue = userPrompt.trim();
 
 	return {
-		template,
+		command: {
+			id: "direct-prompt",
+			name: "Direct Prompt",
+			template,
+			defaultPrompt: promptValue,
+			agentId,
+			enabled: true
+		},
 		promptValue
 	};
 }
