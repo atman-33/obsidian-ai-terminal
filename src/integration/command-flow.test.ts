@@ -37,7 +37,7 @@ function createPlugin(overrides: Partial<AITerminalSettings> = {}): AITerminalPl
 		terminalType: "windows-terminal",
 		agents: [],
 		commands: [],
-		settingsVersion: 1,
+		settingsVersion: 4,
 		rememberLastPrompt: false,
 		lastSavedPrompt: "",
 		...overrides
@@ -84,9 +84,9 @@ beforeEach(() => {
 describe("integration command flow", () => {
 	it("runs full direct prompt flow from menu to terminal launch", async () => {
 		const plugin = createPlugin({
-			agents: [{name: "noctis", enabled: true}],
+			agents: [{id: "00000000-0000-4000-8000-000000000010", name: "noctis", enabled: true}],
 			lastUsedDirectPromptCommand: "opencode --agent <agent> --prompt <prompt>",
-			lastUsedDirectPromptAgent: "noctis"
+			lastUsedDirectPromptAgentId: "00000000-0000-4000-8000-000000000010"
 		});
 
 		const menu = new Menu();
@@ -129,9 +129,9 @@ describe("integration command flow", () => {
 
 	it("populates the agent dropdown in the direct prompt modal", () => {
 		const agents: AgentConfig[] = [
-			{name: "noctis", enabled: true},
-			{name: "ignis", enabled: true},
-			{name: "prompto", enabled: false}
+			{id: "00000000-0000-4000-8000-000000000010", name: "noctis", enabled: true},
+			{id: "00000000-0000-4000-8000-000000000011", name: "ignis", enabled: true},
+			{id: "00000000-0000-4000-8000-000000000012", name: "prompto", enabled: false}
 		];
 		const plugin = createPlugin({agents});
 
@@ -141,14 +141,17 @@ describe("integration command flow", () => {
 		const select = modal.contentEl.querySelector("select") as HTMLSelectElement;
 		expect(select).toBeTruthy();
 		const options = Array.from(select.options).map(option => option.value);
-		expect(options).toEqual(["noctis", "ignis"]);
+		expect(options).toEqual([
+			"00000000-0000-4000-8000-000000000010",
+			"00000000-0000-4000-8000-000000000011"
+		]);
 	});
 
 	it("populates the agent dropdown in the command editor modal", () => {
 		const agents: AgentConfig[] = [
-			{name: "noctis", enabled: true},
-			{name: "ignis", enabled: true},
-			{name: "prompto", enabled: false}
+			{id: "00000000-0000-4000-8000-000000000010", name: "noctis", enabled: true},
+			{id: "00000000-0000-4000-8000-000000000011", name: "ignis", enabled: true},
+			{id: "00000000-0000-4000-8000-000000000012", name: "prompto", enabled: false}
 		];
 		const modal = new CommandEditorModal(
 			{vault: new Vault(), workspace: {on: () => ({})}} as any,
@@ -161,12 +164,15 @@ describe("integration command flow", () => {
 		const select = modal.contentEl.querySelector("select") as HTMLSelectElement;
 		expect(select).toBeTruthy();
 		const options = Array.from(select.options).map(option => option.value);
-		expect(options).toEqual(["noctis", "ignis"]);
+		expect(options).toEqual([
+			"00000000-0000-4000-8000-000000000010",
+			"00000000-0000-4000-8000-000000000011"
+		]);
 	});
 
 	it("executes template with agent lookup and launches terminal", async () => {
 		const plugin = createPlugin({
-			agents: [{name: "ignis", enabled: true}]
+			agents: [{id: "00000000-0000-4000-8000-000000000011", name: "ignis", enabled: true}]
 		});
 		const executor = new CommandExecutor(plugin);
 		const command: CommandTemplate = {
@@ -174,7 +180,7 @@ describe("integration command flow", () => {
 			name: "Run",
 			template: "opencode --agent <agent> -i <prompt>",
 			defaultPrompt: "Review <file>",
-			agentName: "ignis",
+			agentId: "00000000-0000-4000-8000-000000000011",
 			enabled: true
 		};
 
@@ -195,6 +201,39 @@ describe("integration command flow", () => {
 			plugin.settings.terminalType,
 			"resolved-command",
 			"/tmp"
+		);
+	});
+
+	it("uses updated agent name without changing command template", async () => {
+		const plugin = createPlugin({
+			agents: [{id: "00000000-0000-4000-8000-000000000099", name: "old", enabled: true}]
+		});
+		const executor = new CommandExecutor(plugin);
+		const command: CommandTemplate = {
+			id: "cmd-rename",
+			name: "Run",
+			template: "opencode --agent <agent> -i <prompt>",
+			defaultPrompt: "Review <file>",
+			agentId: "00000000-0000-4000-8000-000000000099",
+			enabled: true
+		};
+
+		const agent = plugin.settings.agents[0];
+		if (agent) {
+			agent.name = "new";
+		}
+		const success = await executor.executeCommand(command, {prompt: "custom prompt"});
+
+		expect(success).toBe(true);
+		const expectedShell = process.platform === "win32" ? "powershell" : "bash";
+		expect(resolveForShellSpy).toHaveBeenCalledWith(
+			"opencode --agent <agent> -i <prompt>",
+			expect.objectContaining({agent: "new", prompt: "custom prompt"}),
+			expect.objectContaining({
+				defaultPrompt: "Review <file>",
+				agentCommand: "new"
+			}),
+			expectedShell
 		);
 	});
 });

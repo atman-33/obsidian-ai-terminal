@@ -28,9 +28,9 @@ export class CommandExecutor {
 		context: Partial<ExecutionContext>
 	): Promise<boolean> {
 		try {
-			const agent = this.plugin.settings.agents.find(current => current.name === command.agentName);
+			const agent = this.plugin.settings.agents.find(current => current.id === command.agentId);
 			if (!agent) {
-				new Notice(`Agent '${command.agentName}' not found. Please update template.`);
+				new Notice(`Agent with ID '${command.agentId}' not found. Please update template.`);
 				return false;
 			}
 
@@ -47,14 +47,6 @@ export class CommandExecutor {
 				return false;
 			}
 
-			// Debug: log context before resolution
-			console.log('[AI Terminal] Context before resolution:', {
-				file: fullContext.file?.name,
-				selection: fullContext.selection,
-				prompt: fullContext.prompt,
-				agent: fullContext.agent
-			});
-
 			const shell = resolveShellType(this.plugin.settings.terminalType);
 			const resolvedCommand = this.placeholderResolver.resolveForShell(
 				command.template,
@@ -65,8 +57,6 @@ export class CommandExecutor {
 				},
 				shell
 			);
-
-			console.log('[AI Terminal] Resolved command:', resolvedCommand);
 
 			// Get working directory
 			const workingDir = this.placeholderResolver.getWorkingDirectory(fullContext);

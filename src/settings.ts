@@ -6,14 +6,16 @@ import {CommandManager} from "./commands/command-manager";
 import {AgentListEditor} from "./ui/agent-list-editor";
 import {generateUUID} from "./utils/uuid";
 
-const SETTINGS_VERSION = 3;
+const SETTINGS_VERSION = 4;
 
 const DEFAULT_AGENTS: AgentConfig[] = [
 	{
+		id: "00000000-0000-4000-8000-000000000001",
 		name: "Build",
 		enabled: true
 	},
 	{
+		id: "00000000-0000-4000-8000-000000000002",
 		name: "Agent",
 		enabled: true
 	}
@@ -28,7 +30,7 @@ export const DEFAULT_SETTINGS: AITerminalSettings = {
 			name: "OpenCode - Fix Issues",
 			template: 'opencode --agent <agent> --prompt <prompt>',
 			defaultPrompt: "Fix issues in <file>",
-			agentName: "Build",
+			agentId: "00000000-0000-4000-8000-000000000001",
 			enabled: true
 		},
 		{
@@ -36,13 +38,13 @@ export const DEFAULT_SETTINGS: AITerminalSettings = {
 			name: "Copilot - Review",
 			template: 'copilot --agent <agent> -i <prompt>',
 			defaultPrompt: "Review <file>",
-			agentName: "Agent",
+			agentId: "00000000-0000-4000-8000-000000000002",
 			enabled: true
 		}
  	],
 	settingsVersion: SETTINGS_VERSION,
 	lastUsedDirectPromptCommand: "opencode --agent <agent> --prompt <prompt>",
-	lastUsedDirectPromptAgent: "Build",
+	lastUsedDirectPromptAgentId: "00000000-0000-4000-8000-000000000001",
 	rememberLastPrompt: false,
 	lastSavedPrompt: ""
 };
@@ -60,118 +62,89 @@ export async function resetSettingsToDefaults(plugin: {settings: AITerminalSetti
 	await plugin.saveSettings();
 }
 
-type LegacyCommandTemplate = Omit<CommandTemplate, "agentName"> & { defaultAgent?: string; agentId?: string; agentName?: string };
-
-function createUniqueAgentName(base: string, existing: Set<string>): string {
-	const trimmed = base.trim();
-	const baseName = trimmed.length > 0 ? trimmed : "agent";
-	let candidate = baseName;
-	let suffix = 1;
-	while (existing.has(normalizeAgentMatch(candidate))) {
-		candidate = `${baseName}-${suffix}`;
-		suffix += 1;
-	}
-	existing.add(normalizeAgentMatch(candidate));
-	return candidate;
-}
-
-function normalizeAgentMatch(value: string): string {
-	return value.trim().toLowerCase();
-}
-
 function isValidUUID(id: string): boolean {
-	const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 	return uuidRegex.test(id);
 }
 
-export function migrateSettings(
-	settings: Partial<AITerminalSettings> & { commands?: LegacyCommandTemplate[] }
-): AITerminalSettings {
-	const base: AITerminalSettings = {
-		...DEFAULT_SETTINGS,
-		...settings,
-		settingsVersion: SETTINGS_VERSION
-	};
-
-	if (settings.agents && settings.agents.length > 0 && settings.settingsVersion !== undefined && settings.settingsVersion >= SETTINGS_VERSION) {
-		return base;
+export function loadSettings(settings: Partial<AITerminalSettings>): {settings: AITerminalSettings; wasReset: boolean; didUpdate: boolean} {
+	if (!settings || Object.keys(settings).length === 0) {
+		return {settings: createDefaultSettings(), wasReset: false, didUpdate: false};
 	}
 
-	const legacyCommands = (settings.commands ?? DEFAULT_SETTINGS.commands) as LegacyCommandTemplate[];
-	const rawAgents = settings.agents && settings.agents.length > 0
-		? settings.agents
-		: DEFAULT_AGENTS.map(agent => ({...agent}));
-	const existingNames = new Set<string>();
-	const agentsByMatch = new Map<string, AgentConfig>();
-	const agents: AgentConfig[] = [];
+	const agents = Array.isArray(settings.agents) ? settings.agents : [];
+	const commands = Array.isArray(settings.commands) ? settings.commands : [];
+	const hasUUIDStructure = Array.isArray(settings.agents)
+		&& Array.isArray(settings.commands)
+		&& agents.every(agent => agent.id && typeof agent.id === "string")
+		&& commands.every(command => command.agentId && typeof command.agentId === "string");
 
-	rawAgents.forEach(agent => {
-		const legacyAgent = agent as AgentConfig & { id?: string; command?: string };
-		const candidate = legacyAgent.command?.trim() || legacyAgent.name?.trim() || legacyAgent.id?.trim() || "";
-		if (!candidate) {
-			return;
-		}
-		const name = createUniqueAgentName(candidate, existingNames);
-		const normalizedName = normalizeAgentMatch(name);
-		const mapped: AgentConfig = {
-			name,
-			enabled: legacyAgent.enabled ?? true
-		};
-		agents.push(mapped);
-		agentsByMatch.set(normalizedName, mapped);
-		if (legacyAgent.id) {
-			agentsByMatch.set(normalizeAgentMatch(legacyAgent.id), mapped);
-		}
-		if (legacyAgent.name) {
-			agentsByMatch.set(normalizeAgentMatch(legacyAgent.name), mapped);
-		}
-		if (legacyAgent.command) {
-			agentsByMatch.set(normalizeAgentMatch(legacyAgent.command), mapped);
-		}
-	});
+	if (!hasUUIDStructure) {
+		console.warn("Legacy settings detected (pre-UUID structure). Resetting to defaults.");
+		return {settings: createDefaultSettings(), wasReset: true, didUpdate: false};
+	}
 
-	const migratedCommands = legacyCommands.map(command => {
-		const legacyAgent = command.defaultAgent?.trim();
-		let agentName = command.agentName ?? command.agentId;
-		if (!agentName) {
-			if (legacyAgent) {
-				const match = agentsByMatch.get(normalizeAgentMatch(legacyAgent));
-				if (match) {
-					agentName = match.name;
-				} else {
-					const name = createUniqueAgentName(legacyAgent, existingNames);
-					const newAgent: AgentConfig = {
-						name,
-						enabled: true
-					};
-					agents.push(newAgent);
-					agentsByMatch.set(normalizeAgentMatch(newAgent.name), newAgent);
-					agentName = newAgent.name;
-				}
-			} else {
-				agentName = agents[0]?.name ?? "copilot";
+	let didUpdate = false;
+	const regeneratedIds = new Map<string, string>();
+	const usedIds = new Set<string>();
+	const normalizedAgents = agents.map(agent => {
+		let id = agent.id;
+		const hasValidId = typeof id === "string" && isValidUUID(id);
+		const isDuplicate = hasValidId && usedIds.has(id);
+		if (!hasValidId || isDuplicate) {
+			const reason = !hasValidId ? "Invalid" : "Duplicate";
+			console.warn(`${reason} agent UUID detected (${String(id)}). Regenerating UUID.`);
+			const newId = generateUUID();
+			if (!hasValidId) {
+				regeneratedIds.set(id, newId);
 			}
+			id = newId;
+			didUpdate = true;
 		}
-
-		const {defaultAgent, agentId, ...rest} = command as LegacyCommandTemplate;
-		const migratedCommand = {
-			...rest,
-			agentName
-		} as CommandTemplate;
-		
-		// Migrate non-UUID IDs to UUID
-		if (!isValidUUID(migratedCommand.id)) {
-			migratedCommand.id = generateUUID();
-		}
-		
-		return migratedCommand;
+		usedIds.add(id);
+		return {...agent, id};
 	});
+
+	const normalizedCommands = commands.map(command => {
+		const updatedAgentId = regeneratedIds.get(command.agentId) ?? command.agentId;
+		if (updatedAgentId !== command.agentId) {
+			didUpdate = true;
+		}
+		return {...command, agentId: updatedAgentId};
+	});
+
+	const hasValidAgents = normalizedAgents.every(agent =>
+		typeof agent.id === "string"
+		&& isValidUUID(agent.id)
+		&& typeof agent.name === "string"
+		&& agent.name.trim().length > 0
+		&& typeof agent.enabled === "boolean"
+	);
+	const hasValidCommands = normalizedCommands.every(command =>
+		typeof command.id === "string"
+		&& isValidUUID(command.id)
+		&& typeof command.name === "string"
+		&& typeof command.template === "string"
+		&& typeof command.enabled === "boolean"
+		&& typeof command.agentId === "string"
+		&& isValidUUID(command.agentId)
+	);
+
+	if (!hasValidAgents || !hasValidCommands) {
+		console.warn("Invalid settings structure detected. Resetting to defaults.");
+		return {settings: createDefaultSettings(), wasReset: true, didUpdate: false};
+	}
 
 	return {
-		...base,
-		agents,
-		commands: migratedCommands,
-		settingsVersion: SETTINGS_VERSION
+		settings: {
+			...DEFAULT_SETTINGS,
+			...settings,
+			agents: normalizedAgents,
+			commands: normalizedCommands,
+			settingsVersion: SETTINGS_VERSION
+		},
+		wasReset: false,
+		didUpdate
 	};
 }
 

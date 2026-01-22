@@ -9,7 +9,10 @@ export type PlatformType = "windows-terminal" | "bash" | "system-default";
  * Command template configuration for launching AI agents
  */
 export interface AgentConfig {
-	/** Unique name (used for display and command) */
+	/** Unique identifier (UUID v4) */
+	id: string;
+	
+	/** Display name shown in UI */
 	name: string;
 	
 	/** Whether this agent is enabled */
@@ -30,7 +33,7 @@ export interface CommandTemplate {
 	defaultPrompt?: string;
 	
 	/** Agent reference (from settings.agents) */
-	agentName: string;
+	agentId: string;
 	
 	/** Whether this command is enabled */
 	enabled: boolean;
@@ -58,8 +61,8 @@ export interface AITerminalSettings {
 	/** Last used command template in Direct Prompt */
 	lastUsedDirectPromptCommand?: string;
 	
-	/** Last used agent name in Direct Prompt */
-	lastUsedDirectPromptAgent?: string;
+	/** Last used agent ID in Direct Prompt */
+	lastUsedDirectPromptAgentId?: string;
 
 	/** Remember last prompt text for Direct Prompt */
 	rememberLastPrompt: boolean;

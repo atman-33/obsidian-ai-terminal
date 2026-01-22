@@ -1,5 +1,5 @@
-import {Plugin, TFile, Menu, Editor, MarkdownView} from 'obsidian';
-import {AITerminalSettingTab, migrateSettings} from "./settings";
+import {Plugin, TFile, Menu, Editor, MarkdownView, Notice} from 'obsidian';
+import {AITerminalSettingTab, loadSettings} from "./settings";
 import {AITerminalSettings} from "./types";
 import {CommandManager} from "./commands/command-manager";
 import {CommandExecutor} from "./commands/command-executor";
@@ -33,9 +33,16 @@ export default class AITerminalPlugin extends Plugin {
 
 	async loadSettings() {
 		const rawSettings = await this.loadData() as Partial<AITerminalSettings> | null;
-		this.settings = migrateSettings(rawSettings ?? {});
-		if (!rawSettings || !rawSettings.agents || !rawSettings.settingsVersion) {
+		const {settings, wasReset, didUpdate} = loadSettings(rawSettings ?? {});
+		this.settings = settings;
+		if (!rawSettings || wasReset || didUpdate || rawSettings.settingsVersion !== settings.settingsVersion) {
 			await this.saveData(this.settings);
+		}
+		if (wasReset) {
+			new Notice(
+				"Settings were reset to defaults due to UUID migration. Please reconfigure your agents and commands.",
+				10000
+			);
 		}
 	}
 

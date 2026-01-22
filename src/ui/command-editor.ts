@@ -24,13 +24,13 @@ export class CommandEditorModal extends Modal {
 		this.isEdit = !!command;
 		this.originalId = command?.id;
 		this.agents = agents;
-		const defaultAgentName = this.getEnabledAgents()[0]?.name ?? "";
+		const defaultAgentId = this.getEnabledAgents()[0]?.id ?? "";
 		this.command = command || {
 			id: generateUUID(),
 			name: "",
 			template: "",
 			defaultPrompt: "",
-			agentName: defaultAgentName,
+			agentId: defaultAgentId,
 			enabled: true
 		};
 		this.onSave = onSave;
@@ -106,10 +106,10 @@ export class CommandEditorModal extends Modal {
 
 		// Agent selection
 		const enabledAgents = this.getEnabledAgents();
-		const currentAgent = this.command.agentName
-			? this.agents.find(agent => agent.name === this.command.agentName)
+		const currentAgent = this.command.agentId
+			? this.agents.find(agent => agent.id === this.command.agentId)
 			: undefined;
-		const isMissingAgent = !!this.command.agentName && !currentAgent;
+		const isMissingAgent = !!this.command.agentId && !currentAgent;
 		const isDisabledAgent = !!currentAgent && !currentAgent.enabled;
 
 		const agentSetting = new Setting(contentEl)
@@ -117,24 +117,24 @@ export class CommandEditorModal extends Modal {
 			.setDesc("Select the AI agent for this template")
 			.addDropdown(dropdown => {
 				if (isMissingAgent) {
-					dropdown.addOption(this.command.agentName || "", `[Deleted Agent] (${this.command.agentName})`);
+					dropdown.addOption(this.command.agentId || "", `[Missing Agent] (${this.command.agentId})`);
 				} else if (isDisabledAgent) {
-					dropdown.addOption(this.command.agentName || "", `[Disabled Agent] ${currentAgent?.name ?? ""}`.trim());
+					dropdown.addOption(this.command.agentId || "", `[Disabled Agent] ${currentAgent?.name ?? ""}`.trim());
 				}
 
 				enabledAgents.forEach(agent => {
-					dropdown.addOption(agent.name, agent.name);
+					dropdown.addOption(agent.id, agent.name);
 				});
 
-				const fallbackAgentName = enabledAgents[0]?.name ?? this.command.agentName ?? "";
-				if (!this.command.agentName && fallbackAgentName) {
-					this.command.agentName = fallbackAgentName;
+				const fallbackAgentId = enabledAgents[0]?.id ?? this.command.agentId ?? "";
+				if (!this.command.agentId && fallbackAgentId) {
+					this.command.agentId = fallbackAgentId;
 				}
-				dropdown.setValue(this.command.agentName || fallbackAgentName);
+				dropdown.setValue(this.command.agentId || fallbackAgentId);
 				dropdown.setDisabled(enabledAgents.length === 0);
 				dropdown.onChange(value => {
 					this.isDirty = true;
-					this.command.agentName = value;
+					this.command.agentId = value;
 				});
 			});
 
@@ -220,7 +220,7 @@ export class CommandEditorModal extends Modal {
 			return;
 		}
 
-		if (!this.command.agentName) {
+		if (!this.command.agentId) {
 			new Notice("Please select an agent for this command.");
 			return;
 		}

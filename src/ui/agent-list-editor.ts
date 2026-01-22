@@ -1,6 +1,7 @@
 import {App, Modal, Notice, Setting} from "obsidian";
 import AITerminalPlugin from "../main";
 import {AgentConfig, CommandTemplate} from "../types";
+import {generateUUID} from "../utils/uuid";
 
 const MAX_AGENT_NAME_LENGTH = 100;
 
@@ -63,15 +64,11 @@ export class AgentListEditor {
 			setting.addButton(button => button
 				.setButtonText("Edit")
 				.onClick(() => {
-					const previousName = agent.name;
 					const modal = new AgentEditorModal(
 						this.app,
 						{...agent},
 						this.plugin.settings.agents.filter((_, currentIndex) => currentIndex !== index),
 						async (updated) => {
-							if (previousName !== updated.name) {
-								await this.renameAgent(previousName, updated.name);
-							}
 							this.plugin.settings.agents[index] = updated;
 							await this.plugin.saveSettings();
 							onChange();
@@ -122,46 +119,26 @@ export class AgentListEditor {
 	}
 
 	private async handleDeleteAgent(agent: AgentConfig): Promise<void> {
-		const affectedTemplates = this.getTemplatesUsingAgent(agent.name);
+		const affectedTemplates = this.getTemplatesUsingAgent(agent.id);
 		if (affectedTemplates.length === 0) {
-			await this.deleteAgent(agent.name);
+			await this.deleteAgent(agent.id);
 			return;
 		}
-
-		const templateList = affectedTemplates.map(template => `• ${template.name}`).join("\n");
-		return await new Promise(resolve => {
-			const modal = new ConfirmationModal(
-				this.app,
-				"Agent in use",
-				`This agent is used by the following templates:\n${templateList}\n\nDelete anyway?`,
-				"Delete agent",
-				async () => {
-					await this.deleteAgent(agent.name);
-					resolve();
-				},
-				() => resolve()
-			);
-			modal.open();
-		});
+		const templateList = affectedTemplates.map(template => template.name).join(", ");
+		new Notice(
+			`This agent is used by the following templates and cannot be deleted: ${templateList}. ` +
+			"Reassign or remove those templates before deleting the agent."
+		);
 	}
 
-	private async deleteAgent(agentName: string): Promise<void> {
-		this.plugin.settings.agents = this.plugin.settings.agents.filter(agent => agent.name !== agentName);
+	private async deleteAgent(agentId: string): Promise<void> {
+		this.plugin.settings.agents = this.plugin.settings.agents.filter(agent => agent.id !== agentId);
 		await this.plugin.saveSettings();
 		new Notice("Agent deleted");
 	}
 
-	private getTemplatesUsingAgent(agentName: string): CommandTemplate[] {
-		return this.plugin.settings.commands.filter(command => command.agentName === agentName);
-	}
-
-	private async renameAgent(oldName: string, newName: string): Promise<void> {
-		this.plugin.settings.commands.forEach(command => {
-			if (command.agentName === oldName) {
-				command.agentName = newName;
-			}
-		});
-		await this.plugin.saveSettings();
+	private getTemplatesUsingAgent(agentId: string): CommandTemplate[] {
+		return this.plugin.settings.commands.filter(command => command.agentId === agentId);
 	}
 }
 
@@ -181,6 +158,7 @@ export class AgentEditorModal extends Modal {
 		super(app);
 		this.isEdit = !!agent;
 		this.agent = agent || {
+			id: generateUUID(),
 			name: "",
 			enabled: true
 		};
@@ -232,10 +210,10 @@ export class AgentEditorModal extends Modal {
 
 		const normalized = name.toLowerCase();
 		const duplicateName = this.existingAgents.some(agent => {
-			return agent.name.toLowerCase() === normalized;
+			return agent.id !== this.agent.id && agent.name.toLowerCase() === normalized;
 		});
 		if (duplicateName) {
-			return "Agent name already exists. Please choose a unique name.";
+			new Notice("Agent name is already used by another agent. You can still save.");
 		}
 
 		return null;
@@ -267,61 +245,3 @@ export class AgentEditorModal extends Modal {
 	}
 }
 
-class ConfirmationModal extends Modal {
-	private titleText: string;
-	private message: string;
-	private confirmText: string;
-	private onConfirm: () => void;
-	private onCancel: () => void;
-	private didResolve = false;
-
-	constructor(
-		app: App,
-		titleText: string,
-		message: string,
-		confirmText: string,
-		onConfirm: () => void,
-		onCancel: () => void
-	) {
-		super(app);
-		this.titleText = titleText;
-		this.message = message;
-		this.confirmText = confirmText;
-		this.onConfirm = onConfirm;
-		this.onCancel = onCancel;
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.empty();
-		contentEl.createEl("h2", {text: this.titleText});
-		contentEl.createEl("p", {text: this.message});
-
-		const buttonContainer = contentEl.createDiv({cls: "modal-button-container"});
-		const cancelButton = buttonContainer.createEl("button", {text: "Cancel"});
-		cancelButton.addEventListener("click", () => {
-			this.didResolve = true;
-			this.onCancel();
-			this.close();
-		});
-
-		const confirmButton = buttonContainer.createEl("button", {
-			text: this.confirmText,
-			cls: "mod-warning"
-		});
-		confirmButton.addEventListener("click", () => {
-			this.didResolve = true;
-			this.onConfirm();
-			this.close();
-		});
-
-		cancelButton.focus();
-	}
-
-	onClose() {
-		if (!this.didResolve) {
-			this.onCancel();
-		}
-		this.contentEl.empty();
-	}
-}
